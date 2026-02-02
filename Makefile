@@ -17,7 +17,7 @@ install-devnet:
 	asdf install starknet-devnet 0.4.2
 
 install-garaga:
-	pip install garaga==0.18.1
+	./garaga-venv/bin/pip install garaga==0.18.1
 
 install-app-deps:
 	cd app && bun install
@@ -41,7 +41,7 @@ gen-vk:
 	bb write_vk --scheme ultra_honk --oracle_hash starknet -b ./circuit/target/circuit.json -o ./circuit/target
 
 gen-verifier:
-	cd contracts && garaga gen --system ultra_starknet_honk --vk ../circuit/target/vk --project-name verifier
+	cd contracts && ../garaga-venv/bin/garaga gen --system ultra_starknet_honk --vk ../circuit/target/vk --project-name verifier
 
 build-verifier:
 	cd contracts/verifier && scarb build
