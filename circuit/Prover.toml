@@ -1,2 +1,12 @@
-x = "1"
-y = "2"
+dg1 = [2, 0, 0, 6, 0, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+signature = "0x1"
+ds_pubkey = "0x1"
+jurisdiction_root = "0x0" # Needs calculation
+jurisdiction_index = "0"
+jurisdiction_hash_path = ["0x0", "0x0"]
+membership_root = "0x0" # Needs calculation
+membership_index = "0"
+membership_hash_path = ["0x0", "0x0"]
+action_id = "0x42"
+nullifier = "0x0" # Needs calculation
+current_year = "2026"
