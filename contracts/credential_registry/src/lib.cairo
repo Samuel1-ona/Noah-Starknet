@@ -3,7 +3,9 @@ pub trait ICredentialRegistry<TContractState> {
     fn verify_credential(
         ref self: TContractState,
         proof: Span<felt252>,
-        current_year: u256
+        current_year: u256,
+        current_month: u256,
+        current_day: u256
     );
     fn add_jurisdiction_root(ref self: TContractState, root: u256);
     fn add_membership_root(ref self: TContractState, root: u256);
@@ -39,10 +41,12 @@ mod CredentialRegistry {
             self.membership_roots.write(root, true);
         }
 
-        fn verify_credential(
+    fn verify_credential(
             ref self: ContractState,
             proof: Span<felt252>,
-            current_year: u256
+            current_year: u256,
+            current_month: u256,
+            current_day: u256
         ) {
             let verifier_addr = self.verifier_address.read();
             let dispatcher = IUltraStarknetHonkVerifierDispatcher { contract_address: verifier_addr };
@@ -60,14 +64,18 @@ mod CredentialRegistry {
             // 2: action_id
             // 3: nullifier
             // 4: current_year
+            // 5: current_month
+            // 6: current_day
             
-            assert(public_inputs.len() == 5, 'Invalid pub inputs len');
+            assert(public_inputs.len() == 7, 'Invalid pub inputs len');
             
             let jurisdiction_root = *public_inputs.at(0);
             let membership_root = *public_inputs.at(1);
             let _action_id = *public_inputs.at(2);
             let nullifier = *public_inputs.at(3);
             let pub_current_year = *public_inputs.at(4);
+            let pub_current_month = *public_inputs.at(5);
+            let pub_current_day = *public_inputs.at(6);
 
             // Check roots
             assert(self.jurisdiction_roots.read(jurisdiction_root), 'Invalid Jurisdiction');
@@ -77,8 +85,10 @@ mod CredentialRegistry {
             assert(!self.nullifiers.read(nullifier), 'Nullifier already used');
             self.nullifiers.write(nullifier, true);
             
-            // Check current_year matches input
+            // Check current date matches input
             assert(pub_current_year == current_year, 'Year mismatch');
+            assert(pub_current_month == current_month, 'Month mismatch');
+            assert(pub_current_day == current_day, 'Day mismatch');
         }
     }
 }

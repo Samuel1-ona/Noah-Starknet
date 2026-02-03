@@ -1,0 +1,6 @@
+[package]
+name = "test_std_proj"
+type = "bin"
+authors = [""]
+
+[dependencies]
