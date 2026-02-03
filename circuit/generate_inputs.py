@@ -6,14 +6,61 @@ from Crypto.Signature import DSS
 from Crypto.Hash import SHA256
 import random
 
-# Mock Poseidon for BN254 (Placeholder - will try to find real one or use dummy roots for logic test)
-# Since we can't easily reproduce Noir's exact Poseidon in this script without the specific params,
-# We will use "dummy" Merkle paths where we predict the root by invoking the hash function?
-# No, let's just make the circuit print the expected values first!
-# We will generate the KEYs and SIGNATURE correctly.
-# We will providing "wrong" roots and nullifiers, run nargo, see the "println" output (if we add it), 
-# and then fix the inputs. 
-# Or better: We use nargo to compute the values. 
+def calculate_check_digit(data_str):
+    """Calculate MRZ check digit using weighted sum mod 10"""
+    weights = [7, 3, 1]
+    total = 0
+    
+    for i, char in enumerate(data_str):
+        if char == '<':
+            val = 0
+        elif char.isdigit():
+            val = int(char)
+        else:  # A-Z
+            val = ord(char) - ord('A') + 10
+        
+        total += val * weights[i % 3]
+    
+    return str(total % 10)
+
+def generate_mrz():
+    """Generate valid TD3 passport MRZ (88 bytes)"""
+    # Line 1: Document type, issuing country, name (44 chars)
+    line1 = "P<"  # Document type
+    line1 += "UTO"  # Issuing country (Utopia)
+    line1 += "ERIKSSON<<ANNA<MARIA"  # Surname << Given names
+    line1 += "<" * (44 - len(line1))  # Pad to 44 chars
+    
+    # Line 2: Document details (44 chars)
+    doc_num = "L898902C3"
+    doc_check = calculate_check_digit(doc_num)
+    
+    nationality = "UTO"
+    
+    # Date of birth: 2006-05-15 (age 20 in 2026)
+    dob = "060515"  # YYMMDD
+    dob_check = calculate_check_digit(dob)
+    
+    sex = "F"
+    
+    # Expiration: 2041-04-15
+    expiry = "410415"  # YYMMDD
+    expiry_check = calculate_check_digit(expiry)
+    
+    # Optional data (14 chars)
+    optional = "ZE184226B<<<<<"
+    optional_check = calculate_check_digit(optional)
+    
+    # Composite check digit (over doc_num + doc_check + dob + dob_check + expiry + expiry_check + optional + optional_check)
+    composite_data = doc_num + doc_check + dob + dob_check + expiry + expiry_check + optional + optional_check
+    composite_check = calculate_check_digit(composite_data)
+    
+    line2 = doc_num + doc_check + nationality + dob + dob_check + sex + expiry + expiry_check + optional + optional_check + composite_check
+    
+    mrz = line1 + line2
+    assert len(mrz) == 88, f"MRZ length is {len(mrz)}, expected 88"
+    
+    return mrz.encode('ascii')
 
 def generate_inputs():
     # 1. Generate Fixed ECDSA Key Pair (secp256r1 / P-256)
@@ -29,29 +76,15 @@ def generate_inputs():
     pub_x_bytes = pub_x_int.to_bytes(32, byteorder='big')
     pub_y_bytes = pub_y_int.to_bytes(32, byteorder='big')
     
-    # 2. DG1 Data (Mock)
-    # [Year(4), Month(2), Day(2), Code(2), ...]
-    # Age 20: 2006 (assume current is 2026)
-    # 2006 -> '2', '0', '0', '6'
-    dg1 = bytearray(32)
-    # Year 2006
-    dg1[0] = 2
-    dg1[1] = 0
-    dg1[2] = 0
-    dg1[3] = 6
-    # Month 05
-    dg1[4] = 0
-    dg1[5] = 5
-    # Day 15
-    dg1[6] = 1
-    dg1[7] = 5
-    # Jurisdiction "FR" (Using mock ascii or just bytes)
-    dg1[8] = 0
-    dg1[9] = 1 # Code 1
+    # 2. Generate MRZ Data
+    mrz_bytes = generate_mrz()
+    print(f"Generated MRZ: {mrz_bytes.decode('ascii')}")
+    print(f"  Line 1: {mrz_bytes[:44].decode('ascii')}")
+    print(f"  Line 2: {mrz_bytes[44:].decode('ascii')}")
     
-    # 3. Hash DG1
-    h = SHA256.new(dg1)
-    hashed_dg1_bytes = h.digest()
+    # 3. Hash MRZ
+    h = SHA256.new(mrz_bytes)
+    hashed_mrz_bytes = h.digest()
     
     # 4. Sign (Deterministic)
     signer = DSS.new(key, 'deterministic-rfc6979')
@@ -91,21 +124,21 @@ def generate_inputs():
     user_secret = 12345
     action_id = 1
     
-    # Updated Dummies from nargo execute output (Fixed Key)
-    jurisdiction_root = "0x5f7d9c13cd4a4279e532c2c7a8e39bfb34d27cdfdd0ef06717b20bd141efb6"
-    membership_root = "0x120a626edc2671922877ce4ddeb5e201c2afbbc793df255c03d6d5f19065f46e"
-    nullifier = "0x033cff666a93511756c3e47ce4ee3aa7abd305c149c46447b0af94f359921683"
+    # Updated values from nargo execute output (with MRZ input)
+    jurisdiction_root = "0x1d31974bce36c646af5c1fa1720603f6a2cd125f4813dea12e242fe282342f4c"
+    membership_root = "0x22b3353fbf458dbec86120fbe713c4c6a077220eca2457343785f28088d55308"
+    nullifier = "0x2c09e02afd75a423ecb7d5bb55a1dd83a97f1c0c7b645e6d2726ea26b8b7d814"
     
     # Dummies for Merkle (Will fail assertion, but we check println if we add it)
     # Or we construct a "trivial" tree where path is 0,0 and root = leaf (if possible? No, compute_merkle_root does hashing)
     # We will just put randoms and expect failure for now, unless we can script nargo to hash.
     
     inputs = {
-        "dg1": [b for b in dg1],
+        "mrz": [b for b in mrz_bytes],
         "pub_key_x": [b for b in pub_x_bytes],
         "pub_key_y": [b for b in pub_y_bytes],
         "signature": [b for b in signature],
-        "hashed_dg1": [b for b in hashed_dg1_bytes],
+        "hashed_mrz": [b for b in hashed_mrz_bytes],
         
         "jurisdiction_root": jurisdiction_root,
         "jurisdiction_index": 0,

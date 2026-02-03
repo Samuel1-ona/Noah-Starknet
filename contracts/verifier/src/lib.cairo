@@ -1,3 +1,3 @@
-pub mod honk_verifier;
-pub mod honk_verifier_circuits;
-pub mod honk_verifier_constants;
+mod honk_verifier;
+mod honk_verifier_circuits;
+mod honk_verifier_constants;
