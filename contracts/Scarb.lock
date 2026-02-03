@@ -6,6 +6,7 @@ name = "credential_registry"
 version = "0.1.0"
 dependencies = [
  "garaga",
+ "snforge_std",
  "verifier",
 ]
 
@@ -13,6 +14,19 @@ dependencies = [
 name = "garaga"
 version = "0.18.1"
 source = "git+https://github.com/keep-starknet-strange/garaga.git?tag=v0.18.1#3adb570fbfb940611e1748341fd246ceb0755969"
+
+[[package]]
+name = "snforge_scarb_plugin"
+version = "0.55.0"
+source = "git+https://github.com/foundry-rs/starknet-foundry?tag=v0.55.0#8891212a4fe99f1787298042f828ebd4e4abe9a3"
+
+[[package]]
+name = "snforge_std"
+version = "0.55.0"
+source = "git+https://github.com/foundry-rs/starknet-foundry?tag=v0.55.0#8891212a4fe99f1787298042f828ebd4e4abe9a3"
+dependencies = [
+ "snforge_scarb_plugin",
+]
 
 [[package]]
 name = "verifier"

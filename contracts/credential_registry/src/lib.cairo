@@ -40,6 +40,8 @@ mod CredentialRegistry {
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
     use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
     use verifier::honk_verifier::{IUltraStarknetHonkVerifierDispatcher, IUltraStarknetHonkVerifierDispatcherTrait};
+    use core::option::OptionTrait;
+    use core::array::SpanTrait;
 
     #[storage]
     struct Storage {
@@ -49,6 +51,7 @@ mod CredentialRegistry {
         membership_roots: Map<u256, bool>,
         nullifiers: Map<u256, bool>,
         paused: bool,
+        reentrancy_guard: bool,
     }
 
     #[event]
@@ -122,6 +125,10 @@ mod CredentialRegistry {
 
         fn assert_not_paused(self: @ContractState) {
             assert(!self.paused.read(), 'Contract is paused');
+        }
+        
+        fn assert_not_reentrant(self: @ContractState) {
+            assert(!self.reentrancy_guard.read(), 'Reentrant call');
         }
     }
 
@@ -234,6 +241,10 @@ mod CredentialRegistry {
             min_age: u256
         ) {
             self.assert_not_paused();
+            self.assert_not_reentrant();
+            
+            // Set reentrancy guard
+            self.reentrancy_guard.write(true);
             
             let verifier_addr = self.verifier_address.read();
             let dispatcher = IUltraStarknetHonkVerifierDispatcher { contract_address: verifier_addr };
@@ -242,7 +253,7 @@ mod CredentialRegistry {
             let result_opt = dispatcher.verify_ultra_starknet_honk_proof(proof);
             assert(result_opt.is_some(), 'Invalid Proof');
             
-            let public_inputs = result_opt.unwrap();
+            let public_inputs: Span<u256> = OptionTrait::unwrap(result_opt);
             
             // Expected public inputs based on updated circuit (8 inputs):
             // 0: jurisdiction_root
@@ -256,14 +267,18 @@ mod CredentialRegistry {
             
             assert(public_inputs.len() == 8, 'Invalid pub inputs len');
             
-            let jurisdiction_root = *public_inputs.at(0);
-            let membership_root = *public_inputs.at(1);
-            let action_id = *public_inputs.at(2);
-            let nullifier = *public_inputs.at(3);
-            let pub_current_year = *public_inputs.at(4);
-            let pub_current_month = *public_inputs.at(5);
-            let pub_current_day = *public_inputs.at(6);
-            let pub_min_age = *public_inputs.at(7);
+            // Extract public inputs from span using multi_pop_front
+            let mut inputs = public_inputs;
+            let popped = inputs.multi_pop_front::<8>().unwrap();
+            let [jur, mem, act, nul, yr, mo, dy, age] = (*popped).unbox();
+            let jurisdiction_root = jur;
+            let membership_root = mem;
+            let action_id = act;
+            let nullifier = nul;
+            let pub_current_year = yr;
+            let pub_current_month = mo;
+            let pub_current_day = dy;
+            let pub_min_age = age;
 
             // Check roots are valid
             assert(self.jurisdiction_roots.read(jurisdiction_root), 'Invalid Jurisdiction');
@@ -281,6 +296,9 @@ mod CredentialRegistry {
             // Check min_age matches input
             assert(pub_min_age == min_age, 'Min age mismatch');
             
+            // Clear reentrancy guard
+            self.reentrancy_guard.write(false);
+            
             // Emit event
             self.emit(CredentialVerified {
                 nullifier,
@@ -291,3 +309,6 @@ mod CredentialRegistry {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

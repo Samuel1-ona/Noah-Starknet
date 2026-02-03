@@ -8,6 +8,9 @@ starknet = "2.11.4"
 verifier = { path = "../verifier" }
 garaga = { git = "https://github.com/keep-starknet-strange/garaga.git", tag = "v0.18.1" }
 
+[dev-dependencies]
+snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.55.0" }
+
 [cairo]
 sierra-replace-ids = false
 inlining-strategy = 2
