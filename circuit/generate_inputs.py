@@ -48,7 +48,7 @@ def generate_mrz():
     expiry_check = calculate_check_digit(expiry)
     
     # Optional data (14 chars)
-    optional = "ZE184226B<<<<<"
+    optional = "ZE184226B<<<<<" # Exactly 14 chars
     optional_check = calculate_check_digit(optional)
     
     # Composite check digit (over doc_num + doc_check + dob + dob_check + expiry + expiry_check + optional + optional_check)

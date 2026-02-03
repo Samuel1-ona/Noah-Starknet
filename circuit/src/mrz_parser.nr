@@ -137,13 +137,15 @@ pub fn validate_mrz_check_digits(mrz: [u8; 88]) -> bool {
     // Composite = doc_num + doc_check + dob + dob_check + expiry + expiry_check + optional + optional_check
     let weights = [7, 3, 1];
     let mut sum: u32 = 0;
+    let mut composite_idx: u32 = 0;  // Continuous index for weight calculation
     
     // Document number (44-52) + check (53)
     for i in 44..54 {
         let val = if mrz[i] == 60 { 0 }
         else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
         else { (mrz[i] - 55) as u32 };
-        sum += val * weights[(i - 44) % 3];
+        sum += val * weights[composite_idx % 3];
+        composite_idx += 1;
     }
     
     // DOB (57-62) + check (63)
@@ -151,7 +153,8 @@ pub fn validate_mrz_check_digits(mrz: [u8; 88]) -> bool {
         let val = if mrz[i] == 60 { 0 }
         else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
         else { (mrz[i] - 55) as u32 };
-        sum += val * weights[(i - 44) % 3];
+        sum += val * weights[composite_idx % 3];
+        composite_idx += 1;
     }
     
     // Expiry (65-70) + check (71)
@@ -159,7 +162,8 @@ pub fn validate_mrz_check_digits(mrz: [u8; 88]) -> bool {
         let val = if mrz[i] == 60 { 0 }
         else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
         else { (mrz[i] - 55) as u32 };
-        sum += val * weights[(i - 44) % 3];
+        sum += val * weights[composite_idx % 3];
+        composite_idx += 1;
     }
     
     // Optional data (72-85) + check (86)
@@ -167,7 +171,8 @@ pub fn validate_mrz_check_digits(mrz: [u8; 88]) -> bool {
         let val = if mrz[i] == 60 { 0 }
         else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
         else { (mrz[i] - 55) as u32 };
-        sum += val * weights[(i - 44) % 3];
+        sum += val * weights[composite_idx % 3];
+        composite_idx += 1;
     }
     
     let composite_check = (sum % 10) as u8;

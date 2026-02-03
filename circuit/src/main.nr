@@ -43,9 +43,9 @@ fn main(
     // 2. Parse MRZ to extract passport data
     let passport_data = mrz_parser::parse_mrz(mrz);
     
-    // 3. Validate MRZ check digits (TODO: Fix check digit calculation)
-    // let mrz_valid = mrz_parser::validate_mrz_check_digits(mrz);
-    // assert(mrz_valid);
+    // 3. Validate MRZ check digits
+    let mrz_valid = mrz_parser::validate_mrz_check_digits(mrz);
+    assert(mrz_valid);
 
     // 4. Attribute Check: Age >= min_age (Precise)
     let current_year_u32 = current_year as u32;
