@@ -25,6 +25,9 @@ pub struct PassportData {
     pub birth_month: u32,
     pub birth_day: u32,
     pub nationality_code: Field,
+    pub expiry_year: u32,
+    pub expiry_month: u32,
+    pub expiry_day: u32,
 }
 
 // Parse full MRZ and extract passport data
@@ -37,15 +40,23 @@ pub fn parse_mrz(mrz: [u8; 88]) -> PassportData {
     // Extract nationality from Line 2, positions 54-56 (3 chars)
     let nationality_code = extract_country_code(mrz, 54);
     
+    // Extract expiration date from Line 2, positions 65-70 (YYMMDD)
+    let expiry_year = parse_two_digit_year_expiry(mrz[65], mrz[66]);
+    let expiry_month = parse_two_digits(mrz[67], mrz[68]);
+    let expiry_day = parse_two_digits(mrz[69], mrz[70]);
+    
     PassportData {
         birth_year,
         birth_month,
         birth_day,
         nationality_code,
+        expiry_year,
+        expiry_month,
+        expiry_day,
     }
 }
 
-// Convert 2-digit year (YY) to 4-digit year
+// Convert 2-digit year (YY) to 4-digit year for birth dates
 // Assumes 00-26 = 2000-2026, 27-99 = 1927-1999
 fn parse_two_digit_year(tens: u8, ones: u8) -> u32 {
     let yy = parse_two_digits(tens, ones);
@@ -54,6 +65,13 @@ fn parse_two_digit_year(tens: u8, ones: u8) -> u32 {
     } else {
         1900 + yy
     }
+}
+
+// Convert 2-digit year (YY) to 4-digit year for expiry dates
+// Expiry dates are always in the future, so 00-99 = 2000-2099
+fn parse_two_digit_year_expiry(tens: u8, ones: u8) -> u32 {
+    let yy = parse_two_digits(tens, ones);
+    2000 + yy
 }
 
 // Parse two ASCII digits to u32
@@ -73,25 +91,92 @@ fn extract_country_code(mrz: [u8; 88], start_idx: u32) -> Field {
     c1 * 65536 + c2 * 256 + c3
 }
 
-// Optional: Validate MRZ check digit
-// Check digit algorithm: weighted sum mod 10
-// Weights: 7, 3, 1, 7, 3, 1, ...
-pub fn validate_check_digit(data: [u8], expected: u8) -> bool {
+// Validate a single check digit
+fn validate_check_digit_range(mrz: [u8; 88], start: u32, end: u32, check_digit_pos: u32) -> bool {
     let weights = [7, 3, 1];
     let mut sum: u32 = 0;
     
-    for i in 0..data.len() {
-        let val = if data[i] == 60 {  // '<' = 0
+    for i in start..end {
+        let val = if mrz[i] == 60 {  // '<' = 0
             0
-        } else if (data[i] >= 48) & (data[i] <= 57) {  // '0'-'9'
-            (data[i] - 48) as u32
+        } else if (mrz[i] >= 48) & (mrz[i] <= 57) {  // '0'-'9'
+            (mrz[i] - 48) as u32
         } else {  // 'A'-'Z' = 10-35
-            (data[i] - 55) as u32
+            (mrz[i] - 55) as u32
         };
         
-        sum += val * weights[i % 3];
+        sum += val * weights[(i - start) % 3];
     }
     
     let check = (sum % 10) as u8;
-    check == (expected - 48)
+    let expected = mrz[check_digit_pos];
+    
+    // Check digit should be ASCII '0'-'9'
+    if (expected >= 48) & (expected <= 57) {
+        check == (expected - 48)
+    } else {
+        false
+    }
+}
+
+// Validate all MRZ check digits
+pub fn validate_mrz_check_digits(mrz: [u8; 88]) -> bool {
+    // Validate document number check digit (position 53)
+    let doc_num_valid = validate_check_digit_range(mrz, 44, 53, 53);
+    
+    // Validate DOB check digit (position 63)
+    let dob_valid = validate_check_digit_range(mrz, 57, 63, 63);
+    
+    // Validate expiry check digit (position 71)
+    let expiry_valid = validate_check_digit_range(mrz, 65, 71, 71);
+    
+    // Validate optional data check digit (position 86)
+    let optional_valid = validate_check_digit_range(mrz, 72, 86, 86);
+    
+    // Validate composite check digit (position 87)
+    // Composite = doc_num + doc_check + dob + dob_check + expiry + expiry_check + optional + optional_check
+    let weights = [7, 3, 1];
+    let mut sum: u32 = 0;
+    
+    // Document number (44-52) + check (53)
+    for i in 44..54 {
+        let val = if mrz[i] == 60 { 0 }
+        else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
+        else { (mrz[i] - 55) as u32 };
+        sum += val * weights[(i - 44) % 3];
+    }
+    
+    // DOB (57-62) + check (63)
+    for i in 57..64 {
+        let val = if mrz[i] == 60 { 0 }
+        else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
+        else { (mrz[i] - 55) as u32 };
+        sum += val * weights[(i - 44) % 3];
+    }
+    
+    // Expiry (65-70) + check (71)
+    for i in 65..72 {
+        let val = if mrz[i] == 60 { 0 }
+        else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
+        else { (mrz[i] - 55) as u32 };
+        sum += val * weights[(i - 44) % 3];
+    }
+    
+    // Optional data (72-85) + check (86)
+    for i in 72..87 {
+        let val = if mrz[i] == 60 { 0 }
+        else if (mrz[i] >= 48) & (mrz[i] <= 57) { (mrz[i] - 48) as u32 }
+        else { (mrz[i] - 55) as u32 };
+        sum += val * weights[(i - 44) % 3];
+    }
+    
+    let composite_check = (sum % 10) as u8;
+    let expected_composite = mrz[87];
+    let composite_valid = if (expected_composite >= 48) & (expected_composite <= 57) {
+        composite_check == (expected_composite - 48)
+    } else {
+        false
+    };
+    
+    doc_num_valid & dob_valid & expiry_valid & optional_valid & composite_valid
 }

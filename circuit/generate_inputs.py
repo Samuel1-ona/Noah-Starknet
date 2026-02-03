@@ -55,7 +55,12 @@ def generate_mrz():
     composite_data = doc_num + doc_check + dob + dob_check + expiry + expiry_check + optional + optional_check
     composite_check = calculate_check_digit(composite_data)
     
+    
+    # Line 2 format: doc_num(9) + check(1) + nationality(3) + dob(6) + check(1) + sex(1) + expiry(6) + check(1) + optional(14) + check(1) + composite(1) = 44
     line2 = doc_num + doc_check + nationality + dob + dob_check + sex + expiry + expiry_check + optional + optional_check + composite_check
+    
+    # Verify line 2 is exactly 44 characters
+    assert len(line2) == 44, f"Line 2 length is {len(line2)}, expected 44"
     
     mrz = line1 + line2
     assert len(mrz) == 88, f"MRZ length is {len(mrz)}, expected 88"
@@ -120,18 +125,15 @@ def generate_inputs():
     current_year = 2026
     current_month = 6
     current_day = 1
+    min_age = 18  # Configurable age requirement
     
     user_secret = 12345
     action_id = 1
     
-    # Updated values from nargo execute output (with MRZ input)
+    # Updated values from circuit execution (with full signature hashing)
     jurisdiction_root = "0x1d31974bce36c646af5c1fa1720603f6a2cd125f4813dea12e242fe282342f4c"
-    membership_root = "0x22b3353fbf458dbec86120fbe713c4c6a077220eca2457343785f28088d55308"
-    nullifier = "0x2c09e02afd75a423ecb7d5bb55a1dd83a97f1c0c7b645e6d2726ea26b8b7d814"
-    
-    # Dummies for Merkle (Will fail assertion, but we check println if we add it)
-    # Or we construct a "trivial" tree where path is 0,0 and root = leaf (if possible? No, compute_merkle_root does hashing)
-    # We will just put randoms and expect failure for now, unless we can script nargo to hash.
+    membership_root = "0x0287ded0ce965b2a8d709cb3466c947bed3861d43ca11fb0ce6f2422ea042d5b"
+    nullifier = "0x1a4b0d42039726743da976828632ca170b3fa84a15c3567d63bd877aa11b296b"
     
     inputs = {
         "mrz": [b for b in mrz_bytes],
@@ -154,7 +156,8 @@ def generate_inputs():
         
         "current_year": str(current_year),
         "current_month": str(current_month),
-        "current_day": str(current_day)
+        "current_day": str(current_day),
+        "min_age": str(min_age)
     }
     
     with open("Prover.toml", "w") as f:
