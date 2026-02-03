@@ -23,7 +23,7 @@ install-app-deps:
 	cd app && bun install
 
 devnet:
-	starknet-devnet --accounts=2 --seed=0 --initial-balance=100000000000000000000000
+	asdf exec starknet-devnet --accounts=2 --seed=0 --initial-balance=100000000000000000000000
 
 accounts-file:
 	curl -s http://localhost:5050/predeployed_accounts | jq '{"alpha-sepolia": {"devnet0": {address: .[0].address, private_key: .[0].private_key, public_key: .[0].public_key, class_hash: "0xe2eb8f5672af4e6a4e8a8f1b44989685e668489b0a25437733756c5a34a1d6", deployed: true, legacy: false, salt: "0x14", type: "open_zeppelin"}}}' > ./contracts/accounts.json
