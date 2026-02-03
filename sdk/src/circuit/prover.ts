@@ -39,6 +39,23 @@ export class NoahProver {
     }
 
     /**
+     * Factory method to load a prover from remote artifacts
+     */
+    static async fromRemote(circuitUrl: string, vkUrl?: string): Promise<NoahProver> {
+        const artifactResponse = await fetch(circuitUrl);
+        const artifact = await artifactResponse.json();
+
+        let vk: Uint8Array | undefined;
+        if (vkUrl) {
+            const vkResponse = await fetch(vkUrl);
+            const vkBuffer = await vkResponse.arrayBuffer();
+            vk = new Uint8Array(vkBuffer);
+        }
+
+        return new NoahProver(artifact, vk);
+    }
+
+    /**
      * Generates a proof for the given inputs
      * @param inputs The circuit inputs
      * @returns The generated proof and public inputs
