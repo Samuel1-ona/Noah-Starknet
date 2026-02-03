@@ -3,3 +3,6 @@ export * from './contract/registry';
 export * from './contract/manager';
 export * from './orchestrator/proof';
 export * from './utils/conversions';
+export * from './data/mrz';
+export * from './data/nfc';
+export * from './data/provider';
