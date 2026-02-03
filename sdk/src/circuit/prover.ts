@@ -2,7 +2,7 @@ import { Noir } from '@noir-lang/noir_js';
 import { UltraHonkBackend } from '@aztec/bb.js';
 import { CompiledCircuit } from '@noir-lang/types';
 import { getHonkCallData, init as initGaraga } from 'garaga';
-import { flattenFieldsAsArray } from '../utils/proof';
+import { flattenFieldsAsArray } from '../utils/conversions';
 
 export interface NoahProverInputs {
     mrz: number[];
@@ -67,11 +67,9 @@ export class NoahProver {
             1 // HonkFlavor.STARKNET
         );
 
-        // Garaga getHonkCallData returns string[]
-        // The first element is usually the proof length or similar, 
-        // but verifier_ultra_starknet_honk_proof expects the Span<felt252>
-        // in App.tsx it uses callData.slice(1)
-        return callData.slice(1);
+        // Garaga getHonkCallData returns bigint[]
+        // We convert to string[] for Starknet.js
+        return callData.slice(1).map(x => x.toString());
     }
 
     setVk(vk: Uint8Array) {
