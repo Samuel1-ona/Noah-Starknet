@@ -63,10 +63,10 @@ function App() {
           circuitArtifact: circuitArtifact as any,
           vk,
           starknet: {
-            providerUrl: 'http://127.0.0.1:5050/rpc',
-            registryAddress: '0x05b8f1b70d80d047b33208b9eb03633cba0d66caf2cf5d53f818c7f8a7411660',
-            accountAddress: '0x064b48806902a367c8598f4f95c305e8c1a1acba5f082d294a43793113115691',
-            privateKey: '0x0000000000000000000000000000000071d7bb07b9a64f6f78ac4c816aff4da9'
+            providerUrl: 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c',
+            registryAddress: '0x03711be4c162e3c29d65ca0e5cb2b97943bb69fcde4f570ebe18f6fb463f1273',
+            accountAddress: '0x02Bc02AE26B75e9dc7db44d2F38A4778b909Ba05d4A41129544baD3F55F30Dbe',
+            privateKey: ''
           }
         };
 

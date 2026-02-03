@@ -21,7 +21,7 @@
         "eventemitter3": "^5.0.4",
         "garaga": "=0.18.1",
         "msgpackr": "^1.11.8",
-        "starknet": "^7.1.0",
+        "starknet": "^9.2.1",
         "tesseract.js": "^7.0.0"
     },
     "devDependencies": {

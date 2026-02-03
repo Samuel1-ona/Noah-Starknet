@@ -10,11 +10,21 @@ export class NoahRegistry {
         provider: RpcProvider,
         account?: Account
     ) {
-        this.contract = new Contract(abi, address, provider);
-        if (account) {
-            this.account = account;
-            this.contract.connect(account);
-        }
+        console.log('[NoahRegistry] Initializing with:', {
+            address,
+            isAbiArray: Array.isArray(abi),
+            abiLength: Array.isArray(abi) ? abi.length : 0
+        });
+
+        // Ensure abi is a clean array and use the object-based constructor for v9
+        const cleanAbi = Array.isArray(abi) ? [...abi] : abi;
+
+        this.contract = new Contract({
+            abi: cleanAbi,
+            address,
+            providerOrAccount: account || provider
+        });
+        this.account = account;
     }
 
     /**

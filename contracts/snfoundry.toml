@@ -7,3 +7,7 @@ account = "devnet0"
 url = "http://127.0.0.1:5050/rpc"
 accounts-file = "accounts.json"
 account = "devnet0"
+[sncast.testnet]
+url = "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c"
+accounts-file = "accounts_testnet.json"
+account = "deployer"
