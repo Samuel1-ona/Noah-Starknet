@@ -1,5 +1,5 @@
 import { CompiledCircuit } from '@noir-lang/types';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'eventemitter3';
 import { NoahProver, NoahProverInputs } from '../circuit/prover';
 import { NoahContractManager, NoahConfig } from '../contract/manager';
 import { NoahError, NoahProverError, NoahContractError } from '../utils/errors';

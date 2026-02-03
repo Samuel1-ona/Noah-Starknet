@@ -27,10 +27,10 @@ export class NoahRegistry {
      */
     async verifyCredential(
         proof: string[],
-        currentYear: bigint | number,
-        currentMonth: bigint | number,
-        currentDay: bigint | number,
-        minAge: bigint | number
+        currentYear: string | bigint | number,
+        currentMonth: string | bigint | number,
+        currentDay: string | bigint | number,
+        minAge: string | bigint | number
     ) {
         if (!this.account) {
             throw new Error('Account is required for write operations');

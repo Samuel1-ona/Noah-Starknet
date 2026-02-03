@@ -10,19 +10,19 @@ export interface NoahProverInputs {
     pub_key_y: number[];
     signature: number[];
     hashed_mrz: number[];
-    jurisdiction_root: string | bigint;
-    jurisdiction_index: number | bigint;
-    jurisdiction_hash_path: string[] | bigint[];
-    membership_root: string | bigint;
-    membership_index: number | bigint;
-    membership_hash_path: string[] | bigint[];
-    action_id: string | bigint;
-    nullifier: string | bigint;
-    user_secret: string | bigint;
-    current_year: number | bigint;
-    current_month: number | bigint;
-    current_day: number | bigint;
-    min_age: number | bigint;
+    jurisdiction_root: string | number | bigint;
+    jurisdiction_index: string | number | bigint;
+    jurisdiction_hash_path: string[] | number[] | bigint[];
+    membership_root: string | number | bigint;
+    membership_index: string | number | bigint;
+    membership_hash_path: string[] | number[] | bigint[];
+    action_id: string | number | bigint;
+    nullifier: string | number | bigint;
+    user_secret: string | number | bigint;
+    current_year: string | number | bigint;
+    current_month: string | number | bigint;
+    current_day: string | number | bigint;
+    min_age: string | number | bigint;
 }
 
 export class NoahProver {

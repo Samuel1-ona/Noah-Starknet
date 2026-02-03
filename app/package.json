@@ -13,14 +13,18 @@
     "@aztec/bb.js": "=0.86.0-starknet.1",
     "@noir-lang/noir_js": "=1.0.0-beta.3",
     "@starknet-io/get-starknet": "^4.0.7",
-    "garaga": "=0.18.0",
+    "garaga": "=0.18.1",
+    "noah-sdk": "file:../sdk",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "starknet": "^7.1.0",
-    "vite-plugin-serve-static": "^1.1.0"
+    "vite-plugin-serve-static": "^1.1.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@types/node": "^25.2.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

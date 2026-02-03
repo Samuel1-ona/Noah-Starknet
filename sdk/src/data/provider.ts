@@ -5,7 +5,7 @@ import { NoahProverInputs } from '../circuit/prover';
 export type DataAcquisitionMethod = 'NFC' | 'OCR';
 
 export class NoahDataProvider {
-    private scanner: NoahMRZScanner;
+    public scanner: NoahMRZScanner;
 
     constructor() {
         this.scanner = new NoahMRZScanner();

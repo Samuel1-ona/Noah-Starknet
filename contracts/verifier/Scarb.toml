@@ -14,8 +14,9 @@ inlining-strategy = 2
 [dev-dependencies]
 cairo_test = "2.11.4"
 
-[lib]
-
 [[target.starknet-contract]]
 casm = true
 casm-add-pythonic-hints = true
+
+[lib]
+
