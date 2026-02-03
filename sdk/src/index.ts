@@ -6,3 +6,5 @@ export * from './utils/conversions';
 export * from './data/mrz';
 export * from './data/nfc';
 export * from './data/provider';
+export * from './utils/errors';
+export * from './orchestrator/proof';
