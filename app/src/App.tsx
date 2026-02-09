@@ -7,6 +7,7 @@ import {
   NoahEvent,
   NoahProverInputs,
 } from 'noah-sdk';
+
 import circuitArtifact from "./assets/circuit.json";
 
 
@@ -20,6 +21,7 @@ function App() {
   const [passportImage, setPassportImage] = useState<string | null>(null);
   const [mrzExtracted, setMrzExtracted] = useState<string | null>(null);
   const [orchestrator, setOrchestrator] = useState<NoahProofOrchestrator | null>(null);
+  const [account, setAccount] = useState<any>(null); // Starknet account
 
   // Use a ref to reliably track the current state across asynchronous operations
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
@@ -46,11 +48,11 @@ function App() {
           circuitArtifact: circuitArtifact as any,
           vk: vk, // Pass the loaded VK
           starknet: {
-            
+
             providerUrl: import.meta.env.VITE_STARKNET_PROVIDER_URL,
             registryAddress: import.meta.env.VITE_STARKNET_REGISTRY_ADDRESS,
             accountAddress: import.meta.env.VITE_STARKNET_ACCOUNT_ADDRESS,
-            privateKey: import.meta.env.VITE_STARKNET_PRIVATE_KEY
+            // privateKey: import.meta.env.VITE_STARKNET_PRIVATE_KEY
           }
         };
 
@@ -138,6 +140,85 @@ function App() {
     return new Uint8Array(hashBuffer);
   }
 
+  const handleConnectWallet = async () => {
+    try {
+      console.log('[Noah] Starting wallet connection...');
+      const globalWindow = window as any;
+
+      // Look for Starknet wallets in the window object
+      const argent = globalWindow.starknet_argentX;
+      const braavos = globalWindow.starknet_braavos;
+      const generic = globalWindow.starknet;
+
+      const wallet = argent || braavos || generic;
+
+      if (!wallet) {
+        console.error('[Noah] No Starknet wallet detected on window.');
+        alert("Argent X or Braavos wallet not detected. Please make sure your extension is installed and you've refreshed the page.");
+        return;
+      }
+
+      console.log('[Noah] Wallet found:', wallet.name || wallet.id);
+
+      // Trigger connection popup
+      console.log('[Noah] Calling wallet.enable()...');
+      await wallet.enable({ starknetVersion: 'v5' });
+
+      if (wallet.isConnected) {
+        console.log('[Noah] Wallet connected successfully! Address:', wallet.account.address);
+        setAccount(wallet.account);
+
+        // Re-initialize orchestrator with the live account (this replaces the private key)
+        await initOrchestrator(wallet.account);
+      } else {
+        console.warn('[Noah] Wallet enable returned, but isConnected is false.');
+      }
+    } catch (err) {
+      console.error('[Noah] Failed to connect wallet:', err);
+      handleError(err);
+    }
+  };
+
+  const initOrchestrator = async (connectedAccount?: any) => {
+    try {
+      if (orchestrator) {
+        console.log('[Noah] Destroying existing orchestrator...');
+        orchestrator.destroy();
+      }
+
+      console.log('[Noah] Initializing Noah SDK with', connectedAccount ? 'browser wallet' : 'private key', '...');
+
+      const vkResponse = await fetch(vkUrl);
+      const vkBuffer = await vkResponse.arrayBuffer();
+      const vk = new Uint8Array(vkBuffer);
+
+      const config = {
+        circuitArtifact: circuitArtifact as any,
+        vk: vk,
+        starknet: {
+          providerUrl: import.meta.env.VITE_STARKNET_PROVIDER_URL,
+          registryAddress: import.meta.env.VITE_STARKNET_REGISTRY_ADDRESS,
+          // If we have a browser account, use it. Otherwise fall back to .env secret.
+          account: connectedAccount,
+          accountAddress: connectedAccount ? undefined : import.meta.env.VITE_STARKNET_ACCOUNT_ADDRESS,
+          privateKey: connectedAccount ? undefined : import.meta.env.VITE_STARKNET_PRIVATE_KEY
+        }
+      };
+
+      const orch = await NoahProofOrchestrator.new(config);
+
+      orch.on(NoahEvent.PROOF_GENERATION_START, () => updateState(ProofState.GeneratingProof));
+      orch.on(NoahEvent.TRANSACTION_SUBMISSION_START, () => updateState(ProofState.SendingTransaction));
+      orch.on(NoahEvent.ERROR, (err: any) => handleError(err));
+      orch.on(NoahEvent.JOB_UPDATED, (job: any) => console.log('Job Update:', job));
+
+      setOrchestrator(orch);
+      console.log('[Noah] SDK initialized successfully!');
+    } catch (err) {
+      console.error('[Noah] Initialization error:', err);
+    }
+  };
+
   const startProcess = async () => {
     if (!orchestrator || !mrzExtracted) return;
 
@@ -223,6 +304,19 @@ function App() {
     <div className="container">
       <h1>Noah: Anonymous Passport Verification</h1>
 
+      <div className="wallet-section" style={{ position: 'absolute', top: 20, right: 20 }}>
+        {!account ? (
+          <button className="secondary-button" onClick={handleConnectWallet}>
+            Connect Wallet
+          </button>
+        ) : (
+          <div className="wallet-connected">
+            <span className="wallet-address">{account.address.slice(0, 6)}...{account.address.slice(-4)}</span>
+            <button className="text-button" onClick={() => { setAccount(null); initOrchestrator(); }}>Disconnect</button>
+          </div>
+        )}
+      </div>
+
       <div className="state-machine">
         <div className="input-section">
           {!passportImage ? (
@@ -265,6 +359,9 @@ function App() {
       )}
 
       <div className="controls">
+        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: account ? '#4caf50' : '#ffa000' }}>
+          Mode: {account ? `🌐 Wallet Connected (${account.address.slice(0, 6)}...)` : '🔑 Dev Mode (Private Key)'}
+        </div>
         {proofState.state === ProofState.Initial && !proofState.error && (
           <button
             className="primary-button"
