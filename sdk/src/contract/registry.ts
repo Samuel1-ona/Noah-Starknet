@@ -46,14 +46,38 @@ export class NoahRegistry {
             throw new Error('Account is required for write operations');
         }
 
-        // Starknet.js handles u256 if passed as BigInt
-        return await this.contract.verify_credential(
-            proof,
+        console.log('[NoahRegistry] verifyCredential called with args:', {
+            proof_len: proof.length,
             currentYear,
             currentMonth,
             currentDay,
             minAge
-        );
+        });
+
+        try {
+            console.log('[NoahRegistry] Executing this.contract.verify_credential...');
+            // Starknet.js v6 handles Cairo u256 if passed as BigInt.
+            // Explicitly converting to BigInt ensures correct encoding.
+            const res = await this.contract.verify_credential(
+                proof,
+                BigInt(currentYear),
+                BigInt(currentMonth),
+                BigInt(currentDay),
+                BigInt(minAge)
+            );
+            console.log('[NoahRegistry] this.contract.verify_credential result:', res);
+            return res;
+        } catch (error: any) {
+            console.error('[NoahRegistry] CRITICAL ERROR in verify_credential execute:', error);
+            if (error && typeof error === 'object') {
+                console.error('[NoahRegistry] Error details:', {
+                    message: error.message,
+                    name: error.name,
+                    ...error
+                });
+            }
+            throw error;
+        }
     }
 
     /**

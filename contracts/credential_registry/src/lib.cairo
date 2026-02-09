@@ -38,9 +38,10 @@ pub trait ICredentialRegistry<TContractState> {
 #[starknet::contract]
 mod CredentialRegistry {
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
-    use verifier::honk_verifier::{IUltraStarknetHonkVerifierDispatcher, IUltraStarknetHonkVerifierDispatcherTrait};
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess, StorageMapReadAccess, StorageMapWriteAccess};
+    use verifier::honk_verifier::{IUltraKeccakZKHonkVerifierDispatcher, IUltraKeccakZKHonkVerifierDispatcherTrait};
     use core::option::OptionTrait;
+    use core::result::ResultTrait;
     use core::array::SpanTrait;
 
     #[storage]
@@ -247,13 +248,13 @@ mod CredentialRegistry {
             self.reentrancy_guard.write(true);
             
             let verifier_addr = self.verifier_address.read();
-            let dispatcher = IUltraStarknetHonkVerifierDispatcher { contract_address: verifier_addr };
+            let dispatcher = IUltraKeccakZKHonkVerifierDispatcher { contract_address: verifier_addr };
 
             // Call verifier - returns Option<Span<u256>>
-            let result_opt = dispatcher.verify_ultra_starknet_honk_proof(proof);
-            assert(result_opt.is_some(), 'Invalid Proof');
+            let result_opt = dispatcher.verify_ultra_keccak_zk_honk_proof(proof);
+            assert(result_opt.is_ok(), 'Invalid Proof');
             
-            let public_inputs: Span<u256> = OptionTrait::unwrap(result_opt);
+            let public_inputs: Span<u256> = result_opt.unwrap();
             
             // Expected public inputs based on updated circuit (8 inputs):
             // 0: jurisdiction_root

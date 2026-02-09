@@ -15,11 +15,13 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@aztec/bb.js": "=0.86.0-starknet.1",
-        "@noir-lang/noir_js": "=1.0.0-beta.3",
-        "@noir-lang/types": "=1.0.0-beta.3",
+        "@aztec/bb.js": "3.0.0-nightly.20251104",
+        "@noble/curves": "^2.0.1",
+        "@noir-lang/noir_js": "1.0.0-beta.16",
+        "@noir-lang/types": "1.0.0-beta.16",
+        "ethers": "^6.16.0",
         "eventemitter3": "^5.0.4",
-        "garaga": "=0.18.1",
+        "garaga": "^1.0.1",
         "msgpackr": "^1.11.8",
         "starknet": "^9.2.1",
         "tesseract.js": "^7.0.0"

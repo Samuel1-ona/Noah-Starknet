@@ -10,6 +10,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    global: "globalThis",
+    "process.env": "{}",
+  },
   plugins: [
     react(),
     wasm(),
@@ -17,10 +21,6 @@ export default defineConfig({
     {
       // Workaround for https://github.com/keep-starknet-strange/scaffold-garaga/issues/5
       ...serveStatic([
-        {
-          pattern: /main.worker.js/,
-          resolve: path.resolve(__dirname, 'node_modules/@aztec/bb.js/dest/browser/main.worker.js')
-        },
         {
           pattern: /acvm_js_bg.wasm/,
           resolve: path.resolve(__dirname, '../sdk/node_modules/@noir-lang/acvm_js/web/acvm_js_bg.wasm')
@@ -33,10 +33,23 @@ export default defineConfig({
       apply: 'serve', // Only apply in dev mode
     }
   ],
+  resolve: {
+    alias: {
+      pino: path.resolve(__dirname, 'node_modules/pino/browser.js'),
+      buffer: path.resolve(__dirname, 'node_modules/buffer/index.js'),
+      process: path.resolve(__dirname, 'node_modules/process/index.js'),
+      '@aztec/bb.js': path.resolve(__dirname, 'node_modules/@aztec/bb.js'),
+    },
+  },
   optimizeDeps: {
-    exclude: ['@aztec/bb.js', '@noir-lang/acvm_js', '@noir-lang/noirc_abi', '@noir-lang/noir_js']
+    include: ['pino'],
+    exclude: ['@noir-lang/acvm_js', '@noir-lang/noirc_abi', '@noir-lang/noir_js', '@aztec/bb.js']
   },
   server: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
     fs: {
       allow: [
         '/Users/machine/Documents/Noah-starknet/Noah-starknet/app',

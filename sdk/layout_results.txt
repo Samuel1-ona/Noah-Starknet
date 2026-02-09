@@ -1,0 +1,33 @@
+[NoahProver] Starting initialization...
+[NoahProver] Initializing Barretenberg API...
+[NoahProver] This may take 15-30 seconds on first load (loading ~3.6MB WASM)...
+[NoahProver] Environment check:
+[NoahProver] - crossOriginIsolated: false
+[NoahProver] - SharedArrayBuffer: true
+[NoahProver] - hardwareConcurrency: 8
+[NoahProver] DEBUG: Calling Barretenberg.new() with threads: 8
+[NoahProver] DEBUG: Barretenberg.new() call completed successfully.
+[NoahProver] Barretenberg API initialized
+[NoahProver] Creating UltraHonkBackend...
+[NoahProver] Backend created successfully
+Generating proof with 'evm' target...
+[NoahProver] Generating witness...
+[NoahProver] Witness generated successfully
+[NoahProver] Generating proof with UltraHonkBackend...
+[NoahProver] Generating proof with options: {"verifierTarget":"evm"}
+Generated proof for circuit with 8 public inputs and 294 fields.
+[NoahProver] Proof generated successfully, length: 9408
+Proof size: 9408
+Public inputs count: 8
+
+Testing: Original (length: 9408)
+FAILED: undefined
+
+Testing: Strip PI (assume prepended) (length: 9152)
+FAILED: undefined
+
+Testing: Re-prepend PI (length: 9408)
+FAILED: undefined
+
+Testing: Append PI (length: 9408)
+FAILED: undefined

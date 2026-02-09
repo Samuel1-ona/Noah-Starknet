@@ -8,13 +8,10 @@ import {
   NoahProverInputs,
 } from 'noah-sdk';
 import circuitArtifact from "./assets/circuit.json";
-import vkUrl from './assets/vk.bin?url';
 
-// WASM Initializers for Noir
-import initNoirC from "@noir-lang/noirc_abi";
-import initACVM from "@noir-lang/acvm_js";
-const acvm = "/acvm_js_bg.wasm";
-const noirc = "/noirc_abi_wasm_bg.wasm";
+
+
+import vkUrl from './assets/vk.bin?url';
 
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
@@ -26,58 +23,48 @@ function App() {
 
   // Use a ref to reliably track the current state across asynchronous operations
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
+  const initializingRef = useRef<boolean>(false);
 
   // Initialize SDK and WASM on mount
   useEffect(() => {
+    // ... (existing check)
+    initializingRef.current = true;
+
     const initApp = async () => {
       try {
-        // 1. Initialize WASM with error checking
-        const fetchWasm = async (url: string) => {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`Failed to fetch WASM from ${url}: ${res.statusText}`);
+        console.log('Initializing Noah SDK...');
+        updateState(ProofState.Initial);
 
-          // Verify magic word
-          const buffer = await res.clone().arrayBuffer();
-          const bytes = new Uint8Array(buffer.slice(0, 4));
-          const magic = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-          console.log(`Fetched ${url} (Magic: ${magic})`);
+        console.log('Fetching VK from assets...');
+        const vkResponse = await fetch(vkUrl);
+        const vkBuffer = await vkResponse.arrayBuffer();
+        const vk = new Uint8Array(vkBuffer);
 
-          if (magic !== '00 61 73 6d') {
-            const text = await res.clone().text();
-            throw new Error(`Invalid WASM at ${url}. Expected magic '00 61 73 6d', found '${magic}'. Content: ${text.substring(0, 100)}`);
-          }
-          return res;
-        };
-
-        await Promise.all([
-          initACVM(fetchWasm(acvm)),
-          initNoirC(fetchWasm(noirc))
-        ]);
-        console.log('WASM Modules Initialized');
-
-        // 2. Initialize Orchestrator
-        const response = await fetch(vkUrl);
-        const vk = new Uint8Array(await response.arrayBuffer());
+        console.log('Initializing Orchestrator with pre-loaded VK...');
 
         const config = {
           circuitArtifact: circuitArtifact as any,
-          vk,
+          vk: vk, // Pass the loaded VK
           starknet: {
+            // ... (existing config)
             providerUrl: 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c',
-            registryAddress: '0x03711be4c162e3c29d65ca0e5cb2b97943bb69fcde4f570ebe18f6fb463f1273',
+            registryAddress: '0x050eacb6c3e37f6d3570f3945079e6db065ab4050ba2b3e930544a012797fad9',
             accountAddress: '0x02Bc02AE26B75e9dc7db44d2F38A4778b909Ba05d4A41129544baD3F55F30Dbe',
-            privateKey: ''
+            privateKey: '0x05e70cc9452d833070d9954ce05322216ab0e743b214004fd195349e411d7071'
           }
         };
 
-        const orch = new NoahProofOrchestrator(config);
+        console.log('Creating orchestrator...');
+        const orch = await NoahProofOrchestrator.new(config);
+        console.log('Orchestrator created successfully!');
 
         orch.on(NoahEvent.PROOF_GENERATION_START, () => updateState(ProofState.GeneratingProof));
         orch.on(NoahEvent.TRANSACTION_SUBMISSION_START, () => updateState(ProofState.SendingTransaction));
-        orch.on(NoahEvent.ERROR, (err) => handleError(err));
-        orch.on(NoahEvent.JOB_UPDATED, (job) => console.log('Job Update:', job));
+        orch.on(NoahEvent.ERROR, (err: any) => handleError(err));
+        orch.on(NoahEvent.JOB_UPDATED, (job: any) => console.log('Job Update:', job));
 
         setOrchestrator(orch);
+        console.log('Noah SDK initialized successfully!');
       } catch (err) {
         console.error('Failed to init Noah SDK:', err);
       }

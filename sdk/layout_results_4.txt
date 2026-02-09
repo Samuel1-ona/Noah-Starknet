@@ -1,0 +1,35 @@
+Loaded VK from assets, size: 1888
+[NoahProver] Starting initialization...
+[NoahProver] Initializing Barretenberg API...
+[NoahProver] This may take 15-30 seconds on first load (loading ~3.6MB WASM)...
+[NoahProver] Environment check:
+[NoahProver] - crossOriginIsolated: false
+[NoahProver] - SharedArrayBuffer: true
+[NoahProver] - hardwareConcurrency: 8
+[NoahProver] DEBUG: Calling Barretenberg.new() with threads: 8
+[NoahProver] DEBUG: Barretenberg.new() call completed successfully.
+[NoahProver] Barretenberg API initialized
+[NoahProver] Creating UltraHonkBackend...
+[NoahProver] Backend created successfully
+Generating proof with 'evm' target...
+[NoahProver] Generating witness...
+[NoahProver] Witness generated successfully
+[NoahProver] Generating proof with UltraHonkBackend...
+[NoahProver] Generating proof with options: {"verifierTarget":"evm"}
+Generated proof for circuit with 8 public inputs and 294 fields.
+[NoahProver] Proof generated successfully, length: 9408
+
+Testing: Original (length: 9408)
+FAILED: "Point (\"0x1a8bd707ffa596a330fb67da9dff12f5fd3813226196b34f79409bc5191a9eb3\", \"0x2602709eb6af7430fc9864e49f4670342d1504624ea13df43e039c6c64a1911b\") is not on the curve"
+
+Testing: Flipped Proof (length: 9408)
+FAILED: "Point (\"0x14cec9b7baa03ce5cc5895a700b54c6400b010e201a0bbaf6526842323da383c\", \"0x1f0f2547a3bcf3c5a484633ee8f7ebbeadb31aa4a27a73455102970253b4b212\") is not on the curve"
+
+Testing: Flipped PI (length: 9408)
+FAILED: "Point (\"0x1a8bd707ffa596a330fb67da9dff12f5fd3813226196b34f79409bc5191a9eb3\", \"0x2602709eb6af7430fc9864e49f4670342d1504624ea13df43e039c6c64a1911b\") is not on the curve"
+
+Testing: Flipped VK (length: 9408)
+FAILED: "out of range conversion regarding big integer attempted"
+
+Testing: All Flipped (length: 9408)
+FAILED: "out of range conversion regarding big integer attempted"

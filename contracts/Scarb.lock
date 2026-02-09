@@ -2,6 +2,11 @@
 version = 1
 
 [[package]]
+name = "corelib_imports"
+version = "0.1.2"
+source = "git+https://github.com/keep-starknet-strange/garaga.git?tag=v1.0.1#aa91b6504c86995789edb4e78f9f9ba20571625c"
+
+[[package]]
 name = "credential_registry"
 version = "0.1.0"
 dependencies = [
@@ -12,8 +17,11 @@ dependencies = [
 
 [[package]]
 name = "garaga"
-version = "0.18.1"
-source = "git+https://github.com/keep-starknet-strange/garaga.git?tag=v0.18.1#3adb570fbfb940611e1748341fd246ceb0755969"
+version = "1.0.1"
+source = "git+https://github.com/keep-starknet-strange/garaga.git?tag=v1.0.1#aa91b6504c86995789edb4e78f9f9ba20571625c"
+dependencies = [
+ "corelib_imports",
+]
 
 [[package]]
 name = "snforge_scarb_plugin"
@@ -33,4 +41,5 @@ name = "verifier"
 version = "0.1.0"
 dependencies = [
  "garaga",
+ "snforge_std",
 ]

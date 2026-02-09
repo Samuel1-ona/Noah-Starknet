@@ -20,6 +20,14 @@
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "dist",
+        "src/check_*.ts",
+        "src/compare_*.ts",
+        "src/debug_*.ts",
+        "src/test_*.ts",
+        "src/reproduce_*.ts",
+        "src/layout_*.ts",
+        "src/scan_*.ts",
+        "src/verify_*.ts"
     ]
 }

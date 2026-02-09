@@ -1,4 +1,3 @@
-use dep::std;
 mod mrz_parser;
 
 fn main(
@@ -87,7 +86,7 @@ fn main(
 
         // 6. Jurisdiction Whitelist Check (Merkle Proof)
         // Use parsed nationality code from MRZ
-        let computed_jurisdiction_root = std::merkle::compute_merkle_root(passport_data.nationality_code, jurisdiction_index, jurisdiction_hash_path);
+        let computed_jurisdiction_root = compute_merkle_root(passport_data.nationality_code, jurisdiction_index, jurisdiction_hash_path);
         assert(computed_jurisdiction_root == jurisdiction_root);
 
         // 7. Membership Check (Merkle Proof)
@@ -100,15 +99,28 @@ fn main(
             }
             sig_fields[i] = f;
         }
-        let sig_field = std::hash::poseidon::bn254::hash_8(sig_fields);
+        let sig_field = std::hash::pedersen_hash(sig_fields);
 
-        let computed_membership_root = std::merkle::compute_merkle_root(sig_field, membership_index, membership_hash_path);
+        let computed_membership_root = compute_merkle_root(sig_field, membership_index, membership_hash_path);
         assert(computed_membership_root == membership_root);
 
         // 8. Nullifier Generation (Salted)
         // Nullifier = Poseidon(user_secret, action_id, sig_field)
         // This allows unique nullifier per action, but same for same user+action
-        let expected_nullifier = std::hash::poseidon::bn254::hash_3([user_secret, action_id, sig_field]);
+        let expected_nullifier = std::hash::pedersen_hash([user_secret, action_id, sig_field]);
         assert(nullifier == expected_nullifier);
     }
+}
+// Helper for Merkle Root Computation
+fn compute_merkle_root(leaf: Field, index: Field, hash_path: [Field; 2]) -> Field {
+    let mut current = leaf;
+    for i in 0..2 {
+        let path_bit = ((index as u32) >> (i as u8)) & 1;
+        if path_bit == 0 {
+            current = std::hash::pedersen_hash([current, hash_path[i]]);
+        } else {
+            current = std::hash::pedersen_hash([hash_path[i], current]);
+        }
+    }
+    current
 }

@@ -17,7 +17,7 @@ export class NoahDataProvider {
      * must still be provided by the developer or a certification authority.
      */
     async fromImage(
-        imageSource: string | Buffer,
+        imageSource: string | Uint8Array,
         authenticity: Omit<NFCPassportData, 'mrz'>,
         additional: any
     ): Promise<NoahProverInputs> {

@@ -6,8 +6,8 @@ import { NoahProofOrchestrator } from '../src/orchestrator/proof';
 import circuitArtifact from '../assets/circuit.json';
 
 describe('Noah SDK Initialization', () => {
-    it('should initialize NoahProver', () => {
-        const prover = new NoahProver(circuitArtifact as any);
+    it('should initialize NoahProver', async () => {
+        const prover = await NoahProver.new(circuitArtifact as any);
         expect(prover).toBeDefined();
     });
 
@@ -21,7 +21,7 @@ describe('Noah SDK Initialization', () => {
         expect(manager.registry).toBeDefined();
     });
 
-    it('should initialize NoahProofOrchestrator', () => {
+    it('should initialize NoahProofOrchestrator', async () => {
         const config = {
             circuitArtifact: circuitArtifact as any,
             vk: new Uint8Array([1, 2, 3]),
@@ -30,7 +30,7 @@ describe('Noah SDK Initialization', () => {
                 registryAddress: '0x123',
             }
         };
-        const orchestrator = new NoahProofOrchestrator(config);
+        const orchestrator = await NoahProofOrchestrator.new(config);
         expect(orchestrator).toBeDefined();
     });
 });

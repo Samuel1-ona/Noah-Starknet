@@ -20,14 +20,14 @@ export class NoahMRZScanner {
 
     /**
      * Scans an image and extracts the 88-character MRZ string.
-     * @param imageSource Path to image, URL, or Buffer
+     * @param imageSource Path to image, URL, or Uint8Array
      * @returns The combined 88-character MRZ string
      */
-    async scanImage(imageSource: string | Buffer): Promise<string> {
+    async scanImage(imageSource: string | Uint8Array): Promise<string> {
         await this.init();
         if (!this.worker) throw new Error('Failed to initialize OCR worker');
 
-        const { data: { text } } = await this.worker.recognize(imageSource);
+        const { data: { text } } = await this.worker.recognize(imageSource as any);
         return this.parseMRZ(text);
     }
 

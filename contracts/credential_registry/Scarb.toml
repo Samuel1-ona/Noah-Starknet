@@ -1,12 +1,12 @@
 [package]
 name = "credential_registry"
 version = "0.1.0"
-edition = "2023_11"
+edition = "2024_07"
 
 [dependencies]
-starknet = "2.11.4"
+starknet = "2.14.0"
 verifier = { path = "../verifier" }
-garaga = { git = "https://github.com/keep-starknet-strange/garaga.git", tag = "v0.18.1" }
+garaga = { git = "https://github.com/keep-starknet-strange/garaga.git", tag = "v1.0.1" }
 
 [dev-dependencies]
 snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.55.0" }

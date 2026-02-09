@@ -137,7 +137,7 @@ def generate_inputs():
     
     inputs = {
         "mrz": [b for b in mrz_bytes],
-        "pub_key_x": [b for b in pub_x_bytes],
+        "pub_key_x": [0] + [b for b in pub_x_bytes][1:],
         "pub_key_y": [b for b in pub_y_bytes],
         "signature": [b for b in signature],
         "hashed_mrz": [b for b in hashed_mrz_bytes],
