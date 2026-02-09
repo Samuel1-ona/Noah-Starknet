@@ -207,6 +207,14 @@ export class NoahProver {
         );
 
         // Garaga getZKHonkCallData returns bigint[]
+
+        // Starknet.js automatically adds a length prefix when passing an array to a function expecting a Span.
+        // If Garaga returns [len, ...data], we need to strip 'len' to avoid [len, len, ...data].
+        if (callData.length > 0 && callData[0] === BigInt(callData.length - 1)) {
+            console.log(`[NoahProver] Detected length prefix (${callData[0]}) in Garaga output, stripping it...`);
+            callData.shift();
+        }
+
         // We convert to string[] for Starknet.js
         return callData.map(x => x.toString());
 
