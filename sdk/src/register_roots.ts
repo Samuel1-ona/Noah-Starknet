@@ -9,7 +9,7 @@ async function main() {
         nodeUrl: 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c'
     });
 
-    const registryAddress = '0x01dfdc325634d9a6d349dccaca8e23a546d305bbcfd154e6c04f82d31b789584';
+    const registryAddress = '0x00107bca4ea84b0d540a44454a94ebf10e4b0181da34eb8b4c3eea134605730b';
 
     // Admin account from App.tsx
     const privateKey = '0x05e70cc9452d833070d9954ce05322216ab0e743b214004fd195349e411d7071';

@@ -307,6 +307,10 @@ mod CredentialRegistry {
             // Clear reentrancy guard
             self.reentrancy_guard.write(false);
 
+            // Mark address as verified
+            let caller = get_caller_address();
+            self.verified_addresses.write(caller, true);
+
             // Emit event
             self
                 .emit(
