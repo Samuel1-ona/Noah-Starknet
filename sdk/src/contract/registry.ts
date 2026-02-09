@@ -54,16 +54,31 @@ export class NoahRegistry {
             minAge
         });
 
+        if (proof.length > 0) {
+            console.log('[NoahRegistry] Proof sample (first 5):', proof.slice(0, 5));
+        }
+
+
         try {
             console.log('[NoahRegistry] Executing this.contract.verify_credential...');
             // Starknet.js v6 handles Cairo u256 if passed as BigInt.
             // Explicitly converting to BigInt ensures correct encoding.
-            const res = await this.contract.verify_credential(
-                proof,
-                BigInt(currentYear),
-                BigInt(currentMonth),
-                BigInt(currentDay),
-                BigInt(minAge)
+            const res = await this.contract.invoke(
+                "verify_credential",
+                [
+                    proof,
+                    BigInt(currentYear),
+                    BigInt(currentMonth),
+                    BigInt(currentDay),
+                    BigInt(minAge)
+                ],
+                {
+                    resourceBounds: {
+                        l2_gas: { max_amount: BigInt('0x47000000'), max_price_per_unit: BigInt('0x500000000') }, // ~1.19B
+                        l1_gas: { max_amount: BigInt('0x10000'), max_price_per_unit: BigInt('0x1000000000000') }, // ~281k Gwei (Safe buffer)
+                        l1_data_gas: { max_amount: BigInt('0x1000'), max_price_per_unit: BigInt('0x10000000000') } // ~1.1k Gwei
+                    }
+                }
             );
             console.log('[NoahRegistry] this.contract.verify_credential result:', res);
             return res;

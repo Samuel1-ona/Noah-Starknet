@@ -47,7 +47,7 @@ function App() {
           vk: vk, // Pass the loaded VK
           starknet: {
             // ... (existing config)
-            providerUrl: 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c',
+            providerUrl: '',
             registryAddress: '0x050eacb6c3e37f6d3570f3945079e6db065ab4050ba2b3e930544a012797fad9',
             accountAddress: '0x02Bc02AE26B75e9dc7db44d2F38A4778b909Ba05d4A41129544baD3F55F30Dbe',
             privateKey: ''
