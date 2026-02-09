@@ -256,7 +256,8 @@ function App() {
         membership_hash_path: ["0x00", "0x00"],
 
         action_id: "12345",
-        nullifier: "0",
+        // Generate a random nullifier to prevent "Nullifier already used" error during testing
+        nullifier: Math.floor(Math.random() * 1000000000).toString(),
         current_year: "2024",
         current_month: "5",
         current_day: "20",
