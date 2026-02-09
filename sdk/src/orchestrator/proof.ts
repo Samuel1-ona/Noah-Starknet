@@ -164,6 +164,13 @@ export class NoahProofOrchestrator extends EventEmitter {
         }
     }
 
+    /**
+     * Checks if an address is verified
+     */
+    async isAddressVerified(address: string): Promise<boolean> {
+        return this.contracts.registry.isAddressVerified(address);
+    }
+
     async destroy() {
         if (this.prover) await this.prover.destroy();
     }

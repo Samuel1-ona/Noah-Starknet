@@ -2,6 +2,7 @@ import { Contract, Account, RpcProvider, Abi, uint256, CallData } from 'starknet
 
 export class NoahRegistry {
     private contract: Contract;
+    private readContract: Contract;
     private account?: Account;
 
     constructor(
@@ -24,6 +25,16 @@ export class NoahRegistry {
             address,
             providerOrAccount: account || provider
         });
+
+        // Create a separate contract instance for read-only calls using the provider directly.
+        // This avoids issues where the wallet's provider (account) might be using a node 
+        // with strict CORS policies (like blastapi) that block client-side calls.
+        this.readContract = new Contract({
+            abi: cleanAbi,
+            address,
+            providerOrAccount: provider
+        });
+
         this.account = account;
     }
 
@@ -109,5 +120,22 @@ export class NoahRegistry {
     async addMembershipRoot(root: bigint | string) {
         if (!this.account) throw new Error('Account required');
         return await this.contract.add_membership_root(root);
+    }
+
+    /**
+     * Checks if an address is already verified
+     */
+    async isAddressVerified(user: string): Promise<boolean> {
+        console.log('[NoahRegistry] Checking if address is verified:', user);
+        try {
+            // "is_address_verified" is the cairo function name
+            // Use readContract to ensure we use the Provider (Alchemy) not the Wallet (which might be CORS blocked)
+            const result = await this.readContract.is_address_verified(user);
+            console.log('[NoahRegistry] is_address_verified result:', result);
+            return Boolean(result);
+        } catch (error: any) {
+            console.error('[NoahRegistry] Error checking verification status:', error);
+            return false;
+        }
     }
 }

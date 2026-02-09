@@ -209,10 +209,32 @@ function App() {
 
       orch.on(NoahEvent.PROOF_GENERATION_START, () => updateState(ProofState.GeneratingProof));
       orch.on(NoahEvent.TRANSACTION_SUBMISSION_START, () => updateState(ProofState.SendingTransaction));
+      orch.on(NoahEvent.TRANSACTION_SUBMISSION_SUCCESS, () => {
+        console.log('[Noah] Transaction confirmed! Verification complete.');
+        updateState(ProofState.ProofVerified);
+      });
       orch.on(NoahEvent.ERROR, (err: any) => handleError(err));
       orch.on(NoahEvent.JOB_UPDATED, (job: any) => console.log('Job Update:', job));
 
       setOrchestrator(orch);
+
+      // Check if user is already verified
+      if (connectedAccount) {
+        console.log('[Noah] Checking if user is verified...');
+        try {
+          // Type assertion to access the new method until types are fully updated
+          const isVerified = await (orch as any).isAddressVerified(connectedAccount.address);
+          if (isVerified) {
+            console.log('[Noah] User is ALREADY verified!');
+            updateState(ProofState.ProofVerified);
+          } else {
+            console.log('[Noah] User is NOT verified yet.');
+          }
+        } catch (e) {
+          console.warn('[Noah] Failed to check verification status:', e);
+        }
+      }
+
       console.log('[Noah] SDK initialized successfully!');
     } catch (err) {
       console.error('[Noah] Initialization error:', err);

@@ -9,9 +9,9 @@ pub trait ICredentialRegistry<TContractState> {
         current_year: u256,
         current_month: u256,
         current_day: u256,
-        min_age: u256
+        min_age: u256,
     );
-    
+
     // Root management
     fn add_jurisdiction_root(ref self: TContractState, root: u256);
     fn add_membership_root(ref self: TContractState, root: u256);
@@ -19,17 +19,18 @@ pub trait ICredentialRegistry<TContractState> {
     fn add_membership_roots_batch(ref self: TContractState, roots: Span<u256>);
     fn remove_jurisdiction_root(ref self: TContractState, root: u256);
     fn remove_membership_root(ref self: TContractState, root: u256);
-    
+
     // Query functions
     fn is_jurisdiction_root_valid(self: @TContractState, root: u256) -> bool;
     fn is_membership_root_valid(self: @TContractState, root: u256) -> bool;
     fn is_nullifier_used(self: @TContractState, nullifier: u256) -> bool;
+    fn is_address_verified(self: @TContractState, user: ContractAddress) -> bool;
     fn get_owner(self: @TContractState) -> ContractAddress;
     fn is_paused(self: @TContractState) -> bool;
-    
+
     // Access control
     fn transfer_ownership(ref self: TContractState, new_owner: ContractAddress);
-    
+
     // Pausable
     fn pause(ref self: TContractState);
     fn unpause(ref self: TContractState);
@@ -37,12 +38,17 @@ pub trait ICredentialRegistry<TContractState> {
 
 #[starknet::contract]
 mod CredentialRegistry {
-    use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess, StorageMapReadAccess, StorageMapWriteAccess};
-    use verifier::honk_verifier::{IUltraKeccakZKHonkVerifierDispatcher, IUltraKeccakZKHonkVerifierDispatcherTrait};
+    use core::array::SpanTrait;
     use core::option::OptionTrait;
     use core::result::ResultTrait;
-    use core::array::SpanTrait;
+    use starknet::storage::{
+        Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
+        StoragePointerWriteAccess,
+    };
+    use starknet::{ContractAddress, get_block_timestamp, get_caller_address};
+    use verifier::honk_verifier::{
+        IUltraKeccakZKHonkVerifierDispatcher, IUltraKeccakZKHonkVerifierDispatcherTrait,
+    };
 
     #[storage]
     struct Storage {
@@ -51,6 +57,7 @@ mod CredentialRegistry {
         jurisdiction_roots: Map<u256, bool>,
         membership_roots: Map<u256, bool>,
         nullifiers: Map<u256, bool>,
+        verified_addresses: Map<ContractAddress, bool>,
         paused: bool,
         reentrancy_guard: bool,
     }
@@ -127,7 +134,7 @@ mod CredentialRegistry {
         fn assert_not_paused(self: @ContractState) {
             assert(!self.paused.read(), 'Contract is paused');
         }
-        
+
         fn assert_not_reentrant(self: @ContractState) {
             assert(!self.reentrancy_guard.read(), 'Reentrant call');
         }
@@ -141,7 +148,7 @@ mod CredentialRegistry {
             self.jurisdiction_roots.write(root, true);
             self.emit(JurisdictionRootAdded { root });
         }
-        
+
         fn add_membership_root(ref self: ContractState, root: u256) {
             self.assert_only_owner();
             self.membership_roots.write(root, true);
@@ -151,29 +158,23 @@ mod CredentialRegistry {
         fn add_jurisdiction_roots_batch(ref self: ContractState, roots: Span<u256>) {
             self.assert_only_owner();
             let mut i: u32 = 0;
-            loop {
-                if i >= roots.len() {
-                    break;
-                }
+            while i < roots.len() {
                 let root = *roots.at(i);
                 self.jurisdiction_roots.write(root, true);
                 self.emit(JurisdictionRootAdded { root });
                 i += 1;
-            }
+            };
         }
 
         fn add_membership_roots_batch(ref self: ContractState, roots: Span<u256>) {
             self.assert_only_owner();
             let mut i: u32 = 0;
-            loop {
-                if i >= roots.len() {
-                    break;
-                }
+            while i < roots.len() {
                 let root = *roots.at(i);
                 self.membership_roots.write(root, true);
                 self.emit(MembershipRootAdded { root });
                 i += 1;
-            }
+            };
         }
 
         fn remove_jurisdiction_root(ref self: ContractState, root: u256) {
@@ -199,6 +200,10 @@ mod CredentialRegistry {
 
         fn is_nullifier_used(self: @ContractState, nullifier: u256) -> bool {
             self.nullifiers.read(nullifier)
+        }
+
+        fn is_address_verified(self: @ContractState, user: ContractAddress) -> bool {
+            self.verified_addresses.read(user)
         }
 
         fn get_owner(self: @ContractState) -> ContractAddress {
@@ -239,23 +244,25 @@ mod CredentialRegistry {
             current_year: u256,
             current_month: u256,
             current_day: u256,
-            min_age: u256
+            min_age: u256,
         ) {
             self.assert_not_paused();
             self.assert_not_reentrant();
-            
+
             // Set reentrancy guard
             self.reentrancy_guard.write(true);
-            
+
             let verifier_addr = self.verifier_address.read();
-            let dispatcher = IUltraKeccakZKHonkVerifierDispatcher { contract_address: verifier_addr };
+            let dispatcher = IUltraKeccakZKHonkVerifierDispatcher {
+                contract_address: verifier_addr,
+            };
 
             // Call verifier - returns Option<Span<u256>>
             let result_opt = dispatcher.verify_ultra_keccak_zk_honk_proof(proof);
             assert(result_opt.is_ok(), 'Invalid Proof');
-            
+
             let public_inputs: Span<u256> = result_opt.unwrap();
-            
+
             // Expected public inputs based on updated circuit (8 inputs):
             // 0: jurisdiction_root
             // 1: membership_root
@@ -265,9 +272,9 @@ mod CredentialRegistry {
             // 5: current_month
             // 6: current_day
             // 7: min_age (NEW)
-            
+
             assert(public_inputs.len() == 8, 'Invalid pub inputs len');
-            
+
             // Extract public inputs from span using multi_pop_front
             let mut inputs = public_inputs;
             let popped = inputs.multi_pop_front::<8>().unwrap();
@@ -284,29 +291,29 @@ mod CredentialRegistry {
             // Check roots are valid
             assert(self.jurisdiction_roots.read(jurisdiction_root), 'Invalid Jurisdiction');
             assert(self.membership_roots.read(membership_root), 'Invalid Membership');
-            
+
             // Check nullifier hasn't been used
             assert(!self.nullifiers.read(nullifier), 'Nullifier already used');
             self.nullifiers.write(nullifier, true);
-            
+
             // Check current date matches input
             assert(pub_current_year == current_year, 'Year mismatch');
             assert(pub_current_month == current_month, 'Month mismatch');
             assert(pub_current_day == current_day, 'Day mismatch');
-            
+
             // Check min_age matches input
             assert(pub_min_age == min_age, 'Min age mismatch');
-            
+
             // Clear reentrancy guard
             self.reentrancy_guard.write(false);
-            
+
             // Emit event
-            self.emit(CredentialVerified {
-                nullifier,
-                action_id,
-                min_age,
-                timestamp: get_block_timestamp(),
-            });
+            self
+                .emit(
+                    CredentialVerified {
+                        nullifier, action_id, min_age, timestamp: get_block_timestamp(),
+                    },
+                );
         }
     }
 }
