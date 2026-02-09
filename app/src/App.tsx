@@ -46,11 +46,11 @@ function App() {
           circuitArtifact: circuitArtifact as any,
           vk: vk, // Pass the loaded VK
           starknet: {
-            // ... (existing config)
-            providerUrl: '',
-            registryAddress: '0x050eacb6c3e37f6d3570f3945079e6db065ab4050ba2b3e930544a012797fad9',
-            accountAddress: '0x02Bc02AE26B75e9dc7db44d2F38A4778b909Ba05d4A41129544baD3F55F30Dbe',
-            privateKey: ''
+            
+            providerUrl: import.meta.env.VITE_STARKNET_PROVIDER_URL,
+            registryAddress: import.meta.env.VITE_STARKNET_REGISTRY_ADDRESS,
+            accountAddress: import.meta.env.VITE_STARKNET_ACCOUNT_ADDRESS,
+            privateKey: import.meta.env.VITE_STARKNET_PRIVATE_KEY
           }
         };
 
