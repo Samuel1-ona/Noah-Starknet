@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@aztec/bb.js": "3.0.0-nightly.20251104",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.7",
+    "@mui/material": "^7.3.7",
     "@noir-lang/noir_js": "1.0.0-beta.16",
     "@noir-lang/types": "1.0.0-beta.16",
     "@starknet-io/get-starknet": "^4.0.7",
