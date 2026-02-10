@@ -1,122 +1,100 @@
-# Scaffold Garaga app
+# Noah: Anonymous Passport Verification on Starknet
 
-This is a Noir+Garaga+Starknet starter with in-browser proving and a step-by-step guide how to:
-- Generate and deploy UltraHonk proof verifier contract to Starknet devnet
-- Add state to your privacy preserving app
-- Add wallet connection and deploy to public testnet
+Welcome to **Noah**, a privacy-first identity layer built for the starknet ecosystem. 
 
-## Install
+In a world where "proving who you are" usually means uploading a photo of your ID to a centralized server, Noah offers a different path. We allow users to verify their identity using their physical e-Passport **without ever revealing their personal data** to the blockchain or any third party.
 
-Ensure you have node.js >= 20 installed.  
+It's about proving *facts* about yourself (like "I am over 18" or "I am a unique human") without doxxing yourself.
 
-Bun is used for package management, install it with:
-```sh
-make install-bun
-```
+---
 
-For compiling Noir circuits and generating proofs we need specific versions of Aztec packages:
-```sh
-make install-noir
-make install-barretenberg
-```
+## � Why Noah?
 
-Starknet toolkit comes in a single bundle via asdf (the following command will install it if you don't have it):
-```sh
-make install-starknet
-```
+We built Noah to solve the tension between **compliance** and **privacy**. 
 
-We also need to install a tool for spawning local Starknet chain:
-```sh
-make install-devnet
-```
+Traditional KYC (Know Your Customer) is broken. It creates massive honeypots of sensitive user data that get hacked repeatedly. On-chain, the problem is worse: once you link your real-world identity to a wallet, your entire financial history is exposed.
 
-Finally we need to install Garaga. Make sure you have Python 3.10 in your system. You may also need to start a separate Python virtual environment for this to work. You can do that with `python3.10 -m venv garaga-venv && source garaga-venv/bin/activate`. Then install with:
+Noah uses **Zero-Knowledge Proofs (ZKPs)** to bridge the physical and digital worlds securely. Your passport stays in your hand. The blockchain only sees a mathematical proof that vouches for you.
 
-```sh
-make install-garaga
-```
-If you encountered installing garaga failed in your operating system, use docker install is preferred, here's the guide for your reference(https://www.notion.so/Steps-to-Run-the-Scaffold-Garaga-Demo-in-Docker-20e8ba8810a480eb8817f89f2168f21f?source=copy_link)
+## 🌟 Use Cases
 
-Note that we need specific versions of Noir, Barretenberg, and Garaga to work well together. If you are experiencing any issues with code generation, proving, and verification — first of all ensure you have the correct package versions.
+Here is what you can build with Noah:
 
-## Tutorial
+### 1.  Private Age Verification
+Allow users to access age-restricted content or purchase age-gated products (like alcohol or RWA tokens) by proving they are over 18. The dApp receives a simple `true/false`, mentioning *nothing* about the user's actual date of birth or name.
 
-This repo is organized in layers: each app iteration is a new git branch.  
+### 2.  Sybil-Resistant Airdrops & Voting
+Ensure one person gets one vote (or one claim) without requiring them to KYC. Noah uses "nullifiers"—unique, anonymous identifiers derived from the passport—to prevent the same passport from being used twice, all while keeping the user's identity secret.
 
-Follow the steps and checkout the necessary branch:
-1. [`master`](https://github.com/m-kus/scaffold-garaga/tree/master) — in-browser proof generation and stateless proof verification in devnet
-2. [`1-app-logic`](https://github.com/m-kus/scaffold-garaga/tree/1-app-logic) — more involved Noir circuit logic
-3. [`2-app-state`](https://github.com/m-kus/scaffold-garaga/tree/2-app-state) — extend onchain part with a storage for nullifiers
-4. [`3-testnet`](https://github.com/m-kus/scaffold-garaga/tree/3-testnet) — deploy to public Starknet testnet and interact via wallet
+### 3.  Residency & Location Gating
+Restrict access to services based on citizenship or jurisdiction (e.g., "US citizens only" or "exclude certain regions") without asking users to upload proof of address.
 
-## Run app
+### 4.  Bot Protection
+Instantly verify that a user is a real human (holding a real government-issued ID) to stop bot swarms from ruining ticket sales, mints, or gameplay.
 
-First of all we need to build our Noir circuit:
+---
 
-```sh
-make build-circuit
-```
+##  How It Works (The Tech Stack)
 
-Sample inputs are already provided in `Prover.toml`, execute to generate witness:
+The system is composed of three main parts working in harmony:
 
-```sh
-make exec-circuit
-```
+1.  **The Frontend (`/app`)**: A friendly React + Vite web app. This is where the magic happens for the user. It scans the passport via NFC, generates the heavy ZK proof locally in the browser, and handles the wallet connection. **No data leaves this app.**
+    
+2.  **The SDK (`/sdk`)**: Our TypeScript library (`noah-sdk`) does the heavy lifting. It orchestrates the proof generation using `@aztec/bb.js`, manages the complex cryptography, and talks to the smart contracts. It's designed to be reusable so developers can integrate Noah into their own dApps.
 
-Generate verification key:
+3.  **The Smart Contracts (`/contracts`)**: Written in Cairo, these live on Starknet.
+    -   **`CredentialRegistry`**: The brain. It verifies the proofs submitted by the app and keeps a record of which "nullifiers" have been used.
+    -   **`Verifier`**: The math. An optimized contract (generated by Garaga) that checks the validity of the SNARK proof.
 
-```sh
-make gen-vk
-```
+---
 
-Now we can generate the verifier contract in Cairo using Garaga:
+## � Getting Started
 
-```sh
-make gen-verifier
-```
+Want to run this yourself? Here is how to get up and running locally.
 
-Let's start our local development network in other terminal instance:
+### Prerequisites
+You'll need **Node.js (v20+)** installed. If you plan to touch the contracts, you will also need **Rust** and **Scarb**.
 
-```sh
-make devnet
-```
+### Installation
 
-You now need to start a new terminal window. Initialize the account we will be using for deployment:
+1.  **Clone the repo**:
+    ```bash
+    git clone https://github.com/Samuel1-ona/Noah-Starknet.git
+    cd Noah-starknet
+    ```
 
-```sh
-make accounts-file
-```
+2.  **Setup the SDK** (essential for the app to work):
+    ```bash
+    cd sdk
+    npm install
+    npm run build
+    ```
 
-First we need to declare out contract ("upload" contract code):
+3.  **Launch the App**:
+    ```bash
+    cd ../app
+    npm install
+    npm run dev
+    ```
+    Open `http://localhost:5173` and you are ready to go!
 
-```sh
-make declare-verifier
-```
+---
 
-Now we can instantiate the contract class we obtained (you might need to update the command in Makefile):
+## 📖 Using the App
 
-```sh
-make deploy-verifier
-```
+1.  **Connect**: Hook up your Argent X or Braavos wallet (we are on **Starknet Sepolia**).
+2.  **Scan**: Hold your passport against your phone (or input MRZ data if testing). The app reads the chip data.
+3.  **Prove**: Watch the progress bars as the app generates a ZK proof right in your browser.
+4.  **Verify**: Sign the transaction. Once it lands on-chain, your wallet address is officially "Verified" without anyone knowing who you are!
 
-Great! Now let's copy necessary artifacts:
+---
 
-```sh
-make artifacts
-```
+## 🌍 Deployment
 
-Prepare the app and its requirements so you can run it. Go to the `app` folder and:
-1. Update the contract address in the app code (change App.tsx). 
-1. Make sure you have `tsc` installed. If not, you can install it with `bun add -d typescript@next`.
-1. Install vite with `npm install -D vite`
-1. Build the app with `bun run build`
-1. Finally we can run the app: `bun run dev`
+We are live on **Starknet Sepolia**.
 
-## Useful links
+-   **Registry Contract**: `0x00107bca4ea84b0d540a44454a94ebf10e4b0181da34eb8b4c3eea134605730b`
 
-- Noir quickstart https://noir-lang.org/docs/getting_started/quick_start
-- Garaga docs https://garaga.gitbook.io/garaga/deploy-your-snark-verifier-on-starknet/noir
-- Starknet.js docs https://starknetjs.com/docs/guides/intro
-- Starknet quickstart https://docs.starknet.io/quick-start/overview/
-- Sncast 101 https://foundry-rs.github.io/starknet-foundry/starknet/101.html
-- Cairo book https://book.cairo-lang.org/
+---
+
+Built with ❤️ using **Starknet**, **Noir**, and **Garaga**.

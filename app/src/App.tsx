@@ -22,6 +22,7 @@ function App() {
   const [mrzExtracted, setMrzExtracted] = useState<string | null>(null);
   const [orchestrator, setOrchestrator] = useState<NoahProofOrchestrator | null>(null);
   const [account, setAccount] = useState<any>(null); // Starknet account
+  const [isAlreadyVerified, setIsAlreadyVerified] = useState<boolean>(false); // Prevent re-KYC
 
   // Use a ref to reliably track the current state across asynchronous operations
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
@@ -180,6 +181,7 @@ function App() {
   };
 
   const initOrchestrator = async (connectedAccount?: any) => {
+    setIsAlreadyVerified(false); // Reset verified state on re-init
     try {
       if (orchestrator) {
         console.log('[Noah] Destroying existing orchestrator...');
@@ -227,6 +229,7 @@ function App() {
           if (isVerified) {
             console.log('[Noah] User is ALREADY verified!');
             updateState(ProofState.ProofVerified);
+            setIsAlreadyVerified(true); // Lock the UI
           } else {
             console.log('[Noah] User is NOT verified yet.');
           }
@@ -342,7 +345,16 @@ function App() {
 
       <div className="state-machine">
         <div className="input-section">
-          {!passportImage ? (
+          {isAlreadyVerified ? (
+            <div className="verified-view" style={{ textAlign: 'center', padding: '2rem' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
+              <h2>Identity Verified</h2>
+              <p>Your wallet address is already verified on-chain.</p>
+              <div className="mrz-badge success" style={{ display: 'inline-block', marginTop: '1rem' }}>
+                {account?.address.slice(0, 6)}...{account?.address.slice(-4)}
+              </div>
+            </div>
+          ) : !passportImage ? (
             <div className="upload-group">
               <label htmlFor="passport-upload" className="upload-label">
                 Tap to Upload Passport Photo
@@ -395,7 +407,7 @@ function App() {
           </button>
         )}
 
-        {(proofState.error || proofState.state === ProofState.ProofVerified) && (
+        {(proofState.error || (proofState.state === ProofState.ProofVerified && !isAlreadyVerified)) && (
           <button className="reset-button" onClick={resetState}>Restart</button>
         )}
       </div>
