@@ -43,16 +43,11 @@ export class NoahProver {
     }
 
     static async new(circuitArtifact: CompiledCircuit, vk?: Uint8Array): Promise<NoahProver> {
-        console.log('[NoahProver] Starting initialization...');
-        console.log('[NoahProver] Environment check:');
-        console.log('[NoahProver] - crossOriginIsolated:', !!(globalThis as any).crossOriginIsolated);
-        console.log('[NoahProver] - SharedArrayBuffer:', typeof SharedArrayBuffer !== 'undefined');
         let threads = 1;
         try {
             if (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) {
                 threads = Math.min(navigator.hardwareConcurrency, 32);
             } else {
-                // Node.js fallback or single thread
                 threads = 1;
                 try {
                     const os = require('os');
@@ -61,46 +56,16 @@ export class NoahProver {
             }
         } catch (e) { threads = 1; }
 
-        console.log('[NoahProver] Using threads:', threads);
-
-        // bb.js 3.0.0-nightly: Backend manages API instance internally
-        console.log('[NoahProver] Creating UltraHonkBackend...');
-        console.log('[NoahProver] Barretenberg.new source:', Barretenberg.new.toString());
-        console.log('[NoahProver] UltraHonkBackend constructor:', UltraHonkBackend.toString());
-        // Pass threads option indirectly via backend if needed, but in this version it seems to handle it internally or uses defaults.
-        // The constructor signature is new UltraHonkBackend(bytecode, options?) in some versions or just bytecode in others.
-        // Based on my inspection of likely 3.0.0-nightly, it takes bytecode and options.
-        // Let's rely on the backend to initialize the API.
-
-        // Initialize Backend
         const backend = new UltraHonkBackend(circuitArtifact.bytecode, { threads });
 
         if (!vk) {
-            console.log('[NoahProver] No VK provided, generating from circuit...');
             try {
-                // In 3.0.0-nightly, getVerificationKey() triggers internal instantiation
                 vk = await backend.getVerificationKey();
-                console.log('[NoahProver] VK generated successfully, length:', vk.length);
             } catch (error: any) {
-                console.error('[NoahProver] Failed to generate VK:', error);
+                console.error('[Noah] Failed to generate VK:', error);
                 throw error;
             }
         }
-
-        // We only sanitize here. Transformation happens in getStarknetCalldata
-        // @ts-ignore - We are passing null for api initially, enabling it to be set later or we refactor the class
-        // Actually, we can just grab backend.api if it's public, or just create a separate one if needed (wasteful).
-        // Better: refactor `NoahProver` to not strictly need `api` property if backend handles it, 
-        // or type cast backend.api. 
-        // In the source, `api` is a property of UltraHonkBackend.  
-
-        // Let's try to access it. If it's not initialized yet, we might wait.
-        // But `backend.getVerificationKey()` (called above if no vk) ensures instantiation.
-        // If vk IS provided, we haven't called anything on backend yet.
-        // Let's force init.
-
-        // Wait, the `instantiate()` method is marked `@ignore` but is public-ish in JS. 
-        // Let's just cast.
 
         return new NoahProver(circuitArtifact, backend, (backend as any).api, vk);
     }
@@ -128,29 +93,21 @@ export class NoahProver {
      * @returns The generated proof and public inputs
      */
     async generateProof(inputs: NoahProverInputs, options?: any) {
-        console.log('[NoahProver] Generating witness...');
         let witness;
         try {
             const result = await this.noir.execute(inputs as any);
             witness = result.witness;
-            console.log('[NoahProver] Witness generated successfully');
         } catch (error: any) {
-            console.error('[NoahProver] Failed to execute circuit (witness generation):', error);
+            console.error('[Noah] Failed to execute circuit:', error);
             throw error;
         }
 
-        console.log('[NoahProver] Generating proof with UltraHonkBackend...');
         try {
-            // Garaga expects an UltraHonk proof compatible with the 'ultra_keccak_zk_honk' flavor.
-            // This corresponds to the 'keccakZK' option in bb.js (using Keccak for Fiat-Shamir transcript).
-            // This setup matches the EVM target layout.
             const proofOptions: any = options || { keccakZK: true };
-            console.log('[NoahProver] Generating proof with options:', JSON.stringify(proofOptions));
             const proof = await this.backend.generateProof(witness, proofOptions as any);
-            console.log('[NoahProver] Proof generated successfully, length:', proof.proof.length);
             return proof;
         } catch (error: any) {
-            console.error('[NoahProver] Failed to generate proof:', error);
+            console.error('[Noah] Failed to generate proof:', error);
             throw error;
         }
     }
@@ -165,64 +122,28 @@ export class NoahProver {
             throw new Error('Verifying key (VK) is required to generate Starknet calldata');
         }
 
-        console.log('[NoahProver] Generating Garaga calldata...');
-        console.log('[NoahProver] Proof byte length:', proof.proof.length);
-        console.log('[NoahProver] Public inputs count:', proof.publicInputs.length);
-
         await initGaraga();
 
         // Dynamically adapt VK for Garaga using the correct public input count
         const garagaVk = this.adaptVkForGaraga(this.vk, proof.publicInputs.length);
 
-        // Garaga expects layout: [AppPIs (8)] [Pairing (16)] [w1...]
-        // bb.js proof layout:    [AppPIs (8)] [Pairing (16)] [w1...]
-
-        // So we don't need to strip anything from the proof!
-        // We just need to construct the expected public input array (size 24).
-
         const appPublicInputs = flattenFieldsAsArray(proof.publicInputs);
-        console.log(`[NoahProver] App Public Inputs: size ${appPublicInputs.length / 32} felts`);
-
-        // Analysis of Garaga expectations:
-        // 1. VK 'public_inputs_size' MUST be the TOTAL count (App + 16 pairing).
-        //    If we set it to 8, we get "Invalid public inputs size: 8" (because internal logic requires size >= 16).
-        // 2. The 'public_inputs' array passed to getZKHonkCallData MUST contain ONLY the Application inputs.
-        //    Garaga calculates expected_app_inputs = vk_size - 16.
-        //    If we pass 24 inputs, it sees 24 != (24-16), hence "mismatch: proof 24, vk 8".
 
         // Pass only the application public inputs.
-        // Garaga will extract the 16 pairing inputs from the proof bytes itself or handle them internally.
+        // Garaga will extract the 16 pairing inputs from the proof bytes itself.
         const garagaInputs = appPublicInputs;
 
-        console.log(`[NoahProver] Calling Garaga with ${garagaInputs.length} public inputs (App only)`);
-
-        // getZKHonkCallData from 'garaga' expects:
-        // 1. proof - The raw proof bytes (which start with pairing points)
-        // 2. publicInputs - Application public inputs only
-        // 3. verifyingKey - The adapted VK with num_pub = App + 16
         const callData = getZKHonkCallData(
             proof.proof,
             garagaInputs,
             garagaVk
         );
 
-        // Garaga getZKHonkCallData returns bigint[]
-
-        console.log(`[NoahProver] Raw Garaga output length: ${callData.length}`);
-        if (callData.length > 0) {
-            console.log(`[NoahProver] First element (Potential Length): ${callData[0]}`);
-        }
-
         // Starknet.js automatically adds a length prefix when passing an array to a function expecting a Span.
         // If Garaga returns [len, ...data], we need to strip 'len' to avoid [len, len, ...data].
         if (callData.length > 0 && callData[0] === BigInt(callData.length - 1)) {
-            console.log(`[NoahProver] Detected length prefix (${callData[0]}) in Garaga output, stripping it...`);
             callData.shift();
-        } else {
-            console.log(`[NoahProver] No length prefix matching (length-1) detected. Kept as is.`);
         }
-
-        console.log(`[NoahProver] Final Calldata length: ${callData.length}`);
 
         // We convert to string[] for Starknet.js
         return callData.map(x => x.toString());
@@ -245,19 +166,9 @@ export class NoahProver {
 
         // Handle the larger VK format from newer bb.js (3680 bytes)
         if (vk.length >= 3680) {
-            console.log(`[NoahProver] Detected large VK (${vk.length} bytes), keeping it intact/safe truncation...`);
-            // Attempt to preserve log_n from the original VK if it's in the standard position
-            // In standard VK, log_n is at byte 31 (0x1f).
             logN = vk[31];
-            console.log('[NoahProver] Extracted log_n from large VK:', logN);
-
-            // Do not truncate to 1760 as it cuts off the last point(s) if points are shifted!
-            // Garaga needs ~1888 bytes. If points start at 145, we need 145 + 1728 = 1873 bytes.
-            // 1760 < 1873.
-            // Let's just use the full VK or truncate to something safe like 4096.
             targetVk = vk;
         } else if (vk.length >= 1760) {
-            // Try to extract logN from a standard 1760 VK
             logN = vk[31];
         }
 
@@ -269,14 +180,6 @@ export class NoahProver {
      * Constructs the specific header with size, offset, and num_pub.
      */
     private adaptVkForGaraga(vk: Uint8Array, numPublicInputs: number): Uint8Array {
-        console.log(`[NoahProver] Adapting VK for Garaga. Raw VK Length: ${vk.length}`);
-
-        // Garaga's Honk VK format (matching circuit/target/vk):
-        // 0-31: logN (32 bytes)
-        // 32-63: public_inputs_size (32 bytes)
-        // 64-95: input_offset (32 bytes)
-        // 96-1887: 28 G1 Points (64 bytes each, total 1792 bytes)
-
         const newVk = new Uint8Array(1888);
         const dataView = new DataView(newVk.buffer);
 
@@ -284,36 +187,21 @@ export class NoahProver {
         // 0-31: log_circuit_size
         // 32-63: public_inputs_size (AppPIs + 16)
         // 64-95: public_inputs_offset (usually 1)
-
         dataView.setUint32(28, this.extractedLogN, false); // BE
-        // Garaga VK 'public_inputs_size' must include the 16 pairing inputs.
-        // It validates this size >= 16.
         const vkPubInputsCount = numPublicInputs + 16;
         dataView.setUint32(60, vkPubInputsCount, false); // BE
         dataView.setUint32(92, 1, false); // BE
 
-        console.log(`[NoahProver] Set VK public inputs count to: ${vkPubInputsCount} (App ${numPublicInputs} + 16 Pairing)`);
-
         // Find the points in the SDK's VK.
-        // The points follow the 96-byte header in the original file.
         let sdkPointsOffset = 96; // Standard Noir Honk VK header size
         const signature = new Uint8Array([0x13, 0xaf, 0x7f, 0x26]); // QM.X start
 
-        // HEXDUMP for debugging misaligned starts
-        const vkDumpHex = Array.from(vk.slice(140, 200)).map(b => b.toString(16).padStart(2, '0')).join('');
-        console.log(`[NoahProver] VK Dump (140-200): ${vkDumpHex}`);
-
-        // Debug: Check if signature exists at expected offset 96
         const at96 = vk.slice(96, 96 + 4);
-        const at96Hex = Array.from(at96).map(b => b.toString(16).padStart(2, '0')).join('');
-        console.log(`[NoahProver] VK bytes at 96-100: ${at96Hex} (Expected: 13af7f26)`);
 
         if (at96[0] === signature[0] && at96[1] === signature[1] && at96[2] === signature[2] && at96[3] === signature[3]) {
-            console.log('[NoahProver] Found signature at standard offset 96.');
             sdkPointsOffset = 96;
         } else {
             // Search more broadly for the signature
-            console.log('[NoahProver] Signature not at 96, searching...');
             for (let i = 0; i < vk.length - signature.length; i++) {
                 let match = true;
                 for (let j = 0; j < signature.length; j++) {
@@ -323,7 +211,6 @@ export class NoahProver {
                     }
                 }
                 if (match) {
-                    console.log(`[NoahProver] Found VK points signature at offset: ${i}`);
                     sdkPointsOffset = i;
                     break;
                 }
@@ -331,12 +218,9 @@ export class NoahProver {
         }
 
         // Copy 1728 bytes of points (27 G1 points)
-        // Garaga expects points immediately after header (offset 96)
-        console.log('[NoahProver] Copying 1728 bytes of points from SDK VK...');
         newVk.set(vk.slice(sdkPointsOffset, sdkPointsOffset + 1728), 96);
 
         // Append 28th point (LagrangeLast) which is missing in bb.js 1760-byte VK
-        // Point extracted from honk_verifier_constants.cairo for logN=17
         const lagrangeLastX = "01c40845a5f094353fad820b933fe0f25a180b90b64f3785a501ac790f9a62e5";
         const lagrangeLastY = "1e8f4ac92a40a5216c1d586f1d6006b8b246f322996dace5cea687b65f8e1d23";
 
@@ -347,15 +231,6 @@ export class NoahProver {
         }
 
         newVk.set(lagrangeLastBytes, 1824); // 96 + 27 * 64 = 1824
-
-        console.log(`[NoahProver] VK adapted. log_n=${this.extractedLogN}, points=27+1, total=28`);
-
-        // Debug: Dump first 96 bytes of VK
-        console.log("[NoahProver] VK Header Dump (0-96):");
-        const headerHex = Array.from(newVk.slice(0, 96))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-        console.log(headerHex);
 
         return newVk;
     }

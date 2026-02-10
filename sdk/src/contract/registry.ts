@@ -11,12 +11,6 @@ export class NoahRegistry {
         provider: RpcProvider,
         account?: Account
     ) {
-        console.log('[NoahRegistry] Initializing with:', {
-            address,
-            isAbiArray: Array.isArray(abi),
-            abiLength: Array.isArray(abi) ? abi.length : 0
-        });
-
         // Ensure abi is a clean array and use the object-based constructor for v9
         const cleanAbi = Array.isArray(abi) ? [...abi] : abi;
 
@@ -57,23 +51,7 @@ export class NoahRegistry {
             throw new Error('Account is required for write operations');
         }
 
-        console.log('[NoahRegistry] verifyCredential called with args:', {
-            proof_len: proof.length,
-            currentYear,
-            currentMonth,
-            currentDay,
-            minAge
-        });
-
-        if (proof.length > 0) {
-            console.log('[NoahRegistry] Proof sample (first 5):', proof.slice(0, 5));
-        }
-
-
         try {
-            console.log('[NoahRegistry] Executing this.contract.verify_credential...');
-            // Starknet.js v6 handles Cairo u256 if passed as BigInt.
-            // Explicitly converting to BigInt ensures correct encoding.
             const res = await this.contract.invoke(
                 "verify_credential",
                 [
@@ -85,23 +63,15 @@ export class NoahRegistry {
                 ],
                 {
                     resourceBounds: {
-                        l2_gas: { max_amount: BigInt('0x47000000'), max_price_per_unit: BigInt('0x500000000') }, // ~1.19B
-                        l1_gas: { max_amount: BigInt('0x10000'), max_price_per_unit: BigInt('0x1000000000000') }, // ~281k Gwei (Safe buffer)
-                        l1_data_gas: { max_amount: BigInt('0x1000'), max_price_per_unit: BigInt('0x10000000000') } // ~1.1k Gwei
+                        l2_gas: { max_amount: BigInt('0x47000000'), max_price_per_unit: BigInt('0x500000000') },
+                        l1_gas: { max_amount: BigInt('0x10000'), max_price_per_unit: BigInt('0x1000000000000') },
+                        l1_data_gas: { max_amount: BigInt('0x1000'), max_price_per_unit: BigInt('0x10000000000') }
                     }
                 }
             );
-            console.log('[NoahRegistry] this.contract.verify_credential result:', res);
             return res;
         } catch (error: any) {
-            console.error('[NoahRegistry] CRITICAL ERROR in verify_credential execute:', error);
-            if (error && typeof error === 'object') {
-                console.error('[NoahRegistry] Error details:', {
-                    message: error.message,
-                    name: error.name,
-                    ...error
-                });
-            }
+            console.error('[Noah] Transaction failed:', error?.message || error);
             throw error;
         }
     }
@@ -126,15 +96,11 @@ export class NoahRegistry {
      * Checks if an address is already verified
      */
     async isAddressVerified(user: string): Promise<boolean> {
-        console.log('[NoahRegistry] Checking if address is verified:', user);
         try {
-            // "is_address_verified" is the cairo function name
-            // Use readContract to ensure we use the Provider (Alchemy) not the Wallet (which might be CORS blocked)
             const result = await this.readContract.is_address_verified(user);
-            console.log('[NoahRegistry] is_address_verified result:', result);
             return Boolean(result);
         } catch (error: any) {
-            console.error('[NoahRegistry] Error checking verification status:', error);
+            console.error('[Noah] Error checking verification status:', error?.message || error);
             return false;
         }
     }

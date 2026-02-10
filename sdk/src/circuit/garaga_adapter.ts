@@ -324,7 +324,7 @@ export async function generateGaragaProof(witness: Uint8Array, circuitArtifact: 
     const backend = new UltraHonkBackend(circuitArtifact.bytecode, { threads: 1 });
 
 
-    console.log('Generating proof with evm target...');
+
     const proofData = await backend.generateProof(witness, { verifierTarget: 'starknet' } as any);
     const vkBytes = await backend.getVerificationKey({ verifierTarget: 'starknet' } as any);
 
@@ -334,10 +334,10 @@ export async function generateGaragaProof(witness: Uint8Array, circuitArtifact: 
     // Convert public inputs to bigint[]
     const publicInputs: bigint[] = proofData.publicInputs.map(pi => BigInt(pi));
 
-    console.log('Parsing proof with 3.x layout...');
+
     const zkhonkProof = parseProof(proofData.proof, publicInputs, vk);
 
-    console.log('Generating calldata...');
+
     const calldata = getUltraHonkCalldata(vk, zkhonkProof);
 
     await bb.destroy();

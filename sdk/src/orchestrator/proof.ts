@@ -44,16 +44,11 @@ export class NoahProofOrchestrator extends EventEmitter {
      * Creates a new NoahProofOrchestrator instance
      */
     static async new(config: OrchestratorConfig): Promise<NoahProofOrchestrator> {
-        console.log('[NoahProofOrchestrator] Starting initialization...');
         let prover: NoahProver | null = null;
         if (config.circuitArtifact) {
-            console.log('[NoahProofOrchestrator] Initializing prover...');
             prover = await NoahProver.new(config.circuitArtifact, config.vk);
-            console.log('[NoahProofOrchestrator] Prover initialized successfully');
         }
-        console.log('[NoahProofOrchestrator] Creating orchestrator instance...');
         const orchestrator = new NoahProofOrchestrator(config, prover);
-        console.log('[NoahProofOrchestrator] Initialization complete');
         return orchestrator;
     }
 
@@ -74,12 +69,10 @@ export class NoahProofOrchestrator extends EventEmitter {
         const job: NoahJob = { id: jobId, status: JobStatus.PENDING, timestamp: Date.now() };
 
         try {
-            console.log(`[NoahProofOrchestrator] Starting proveAndVerify for job: ${jobId}`);
             if (!this.prover) throw new NoahProverError('Prover not initialized');
 
             // Automatically manage user secret if not provided
             if (!inputs.user_secret) {
-                console.log('[NoahProofOrchestrator] User secret not provided, fetching or creating...');
                 inputs.user_secret = await this.blindedData.getOrCreateSecret();
             }
 
@@ -88,26 +81,11 @@ export class NoahProofOrchestrator extends EventEmitter {
             this.emit(NoahEvent.JOB_UPDATED, job);
 
             this.emit(NoahEvent.PROOF_GENERATION_START);
-            console.log('[NoahProofOrchestrator] Calling generateProof...');
             const proof = await this.prover.generateProof(inputs);
-            console.log('[NoahProofOrchestrator] Proof generated successfully');
             this.emit(NoahEvent.PROOF_GENERATION_SUCCESS, proof);
 
             this.emit(NoahEvent.TRANSACTION_SUBMISSION_START);
-            console.log('[NoahProofOrchestrator] Generating Starknet calldata...');
             const calldata = await this.prover.getStarknetCalldata(proof);
-            console.log('[NoahProofOrchestrator] Calldata generated, length:', calldata.length);
-
-            console.log('[NoahProofOrchestrator] Sending transaction to registry...', {
-                address: this.contracts.registry.verifyCredential.name,
-                args: {
-                    calldata_len: calldata.length,
-                    current_year: inputs.current_year,
-                    current_month: inputs.current_month,
-                    current_day: inputs.current_day,
-                    min_age: inputs.min_age
-                }
-            });
 
             const tx = await this.contracts.registry.verifyCredential(
                 calldata,
@@ -116,7 +94,6 @@ export class NoahProofOrchestrator extends EventEmitter {
                 inputs.current_day,
                 inputs.min_age
             );
-            console.log('[NoahProofOrchestrator] Transaction submitted:', tx.transaction_hash);
 
             job.status = JobStatus.COMPLETED;
             job.transactionHash = tx.transaction_hash;
@@ -126,14 +103,7 @@ export class NoahProofOrchestrator extends EventEmitter {
 
             return tx;
         } catch (error: any) {
-            console.error('[NoahProofOrchestrator] CRITICAL ERROR in proveAndVerify:', error);
-
-            // Detailed logging of error properties for debugging "Unknown orchestrator error"
-            if (error && typeof error === 'object') {
-                console.error('[NoahProofOrchestrator] Error Keys:', Object.keys(error));
-                console.error('[NoahProofOrchestrator] Error Proto:', Object.getPrototypeOf(error)?.constructor?.name);
-                console.error('[NoahProofOrchestrator] Error details (aggressive):', JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))));
-            }
+            console.error('[Noah] Error in proveAndVerify:', error?.message || error);
 
             let errorMessage = 'Unknown orchestrator error';
             if (error instanceof Error) {
@@ -141,11 +111,8 @@ export class NoahProofOrchestrator extends EventEmitter {
             } else if (typeof error === 'string') {
                 errorMessage = error;
             } else if (error && typeof error === 'object') {
-                // Use Object.getOwnPropertyNames to capture non-enumerable 'message' or 'details'
                 errorMessage = error.message || error.details || error.code || JSON.stringify(error, Object.getOwnPropertyNames(error));
             }
-
-            console.error('[NoahProofOrchestrator] Processed error message:', errorMessage);
 
             job.status = JobStatus.FAILED;
             job.error = errorMessage;
@@ -156,7 +123,6 @@ export class NoahProofOrchestrator extends EventEmitter {
                 ? error
                 : new NoahProverError(errorMessage);
 
-            // Attach original error for debugging in non-serializable cases
             (noahError as any).originalError = error;
 
             this.emit(NoahEvent.ERROR, noahError);

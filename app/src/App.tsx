@@ -244,7 +244,6 @@ function App() {
         const mrz = await provider.scanner.scanImage(base64);
         setMrzExtracted(mrz);
         updateState(ProofState.Initial);
-        console.log('Extracted MRZ:', mrz);
       } catch (error) {
         handleError(error);
         setPassportImage(null); // Reset on error

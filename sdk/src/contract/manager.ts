@@ -20,14 +20,7 @@ export class NoahContractManager {
     public blockIdentifier: 'latest' | 'pending';
 
     constructor(config: NoahConfig) {
-        console.log('[NoahContractManager] Initializing with:', {
-            providerUrl: config.providerUrl,
-            registryAddress: config.registryAddress
-        });
-
         // Initialize provider with nodeUrl
-        // In v9, passing nodeUrl in options object is standard.
-        // We'll let it auto-detect the specVersion.
         this.provider = new RpcProvider({
             nodeUrl: config.providerUrl,
             chainId: config.chainId as any
@@ -39,11 +32,7 @@ export class NoahContractManager {
         if (config.account) {
             this.account = config.account;
         } else if (config.accountAddress && config.privateKey) {
-            console.log('[NoahContractManager] Creating account for address:', config.accountAddress);
-
             // V9 style Account initialization MUST use a single options object.
-            // Passing positional arguments causes 'toLowerCase' error because 
-            // the constructor tries to find 'address' on the first argument.
             const account = new Account({
                 provider: this.provider,
                 address: config.accountAddress,
@@ -56,8 +45,6 @@ export class NoahContractManager {
             account.getNonce = async (blockIdentifier?: any) => {
                 return originalGetNonce(blockIdentifier || this.blockIdentifier);
             };
-
-            console.log('[NoahContractManager] Account created successfully');
         }
 
         // Handle case where registryAbi might be a full contract class artifact
