@@ -36,8 +36,7 @@ import {
   CheckCircle as CheckCircleIcon,
   AccountBalanceWallet as WalletIcon,
   Lock as LockIcon,
-  Refresh as RestartIcon,
-  Shield as ShieldIcon
+  Refresh as RestartIcon
 } from '@mui/icons-material';
 
 // --- Theme & Styles ---
@@ -416,16 +415,17 @@ function App() {
         }} />
 
         {/* Header */}
-        <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6, zIndex: 10 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6, zIndex: 10, width: '100%', px: { xs: 3, sm: 5, md: 8 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{
               p: 1,
               borderRadius: '50%',
               background: 'rgba(33, 150, 243, 0.1)',
               border: '1px solid rgba(33, 150, 243, 0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 60, height: 60, overflow: 'hidden'
             }}>
-              <ShieldIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+              <img src="/logo.png" alt="Noah" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </Box>
             <Typography variant="h4" component="h1" sx={{
               background: 'linear-gradient(to right, #fff, #90caf9)',
@@ -465,7 +465,7 @@ function App() {
               }}
             />
           )}
-        </Container>
+        </Box>
 
         {/* Main Content Card */}
         <Container maxWidth="md">
