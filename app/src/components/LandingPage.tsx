@@ -16,7 +16,9 @@ import {
     Bolt as FastIcon,
     Lock as SecureIcon,
     GitHub as GitHubIcon,
-    RocketLaunch as RocketIcon
+    RocketLaunch as RocketIcon,
+    ContentCopy as CopyIcon,
+    Terminal as TerminalIcon
 } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
 
@@ -143,6 +145,34 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                                     View GitHub
                                 </Button>
                             </Stack>
+
+                            {/* Installation snippet */}
+                            <Box sx={{
+                                mt: 2,
+                                p: 2,
+                                borderRadius: 3,
+                                background: 'rgba(0,0,0,0.3)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                maxWidth: 400,
+                                backdropFilter: 'blur(5px)'
+                            }}>
+                                <Stack direction="row" spacing={1.5} alignItems="center">
+                                    <TerminalIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+                                    <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem' }}>
+                                        npm i noah-starknet
+                                    </Typography>
+                                </Stack>
+                                <Button
+                                    size="small"
+                                    onClick={() => navigator.clipboard.writeText('npm i noah-starknet')}
+                                    sx={{ minWidth: 40, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}
+                                >
+                                    <CopyIcon sx={{ fontSize: 18 }} />
+                                </Button>
+                            </Box>
                         </Stack>
                     </Grid>
 
