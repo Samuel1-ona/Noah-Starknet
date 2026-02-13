@@ -3,6 +3,7 @@ import { Contract, Account, RpcProvider, Abi, uint256, CallData } from 'starknet
 export class NoahRegistry {
     private contract: Contract;
     private readContract: Contract;
+    private provider: RpcProvider;
     private account?: Account;
 
     constructor(
@@ -29,6 +30,7 @@ export class NoahRegistry {
             providerOrAccount: provider
         });
 
+        this.provider = provider;
         this.account = account;
     }
 
@@ -51,27 +53,39 @@ export class NoahRegistry {
             throw new Error('Account is required for write operations');
         }
 
+        console.log('[Noah] Verifying credential...');
+
         try {
-            const res = await this.contract.invoke(
-                "verify_credential",
-                [
-                    proof,
-                    BigInt(currentYear),
-                    BigInt(currentMonth),
-                    BigInt(currentDay),
-                    BigInt(minAge)
-                ],
-                {
-                    resourceBounds: {
-                        l2_gas: { max_amount: BigInt('0x47000000'), max_price_per_unit: BigInt('0x500000000') },
-                        l1_gas: { max_amount: BigInt('0x10000'), max_price_per_unit: BigInt('0x1000000000000') },
-                        l1_data_gas: { max_amount: BigInt('0x1000'), max_price_per_unit: BigInt('0x10000000000') }
-                    }
+            const call = this.contract.populate("verify_credential", [
+                proof,
+                BigInt(currentYear),
+                BigInt(currentMonth),
+                BigInt(currentDay),
+                BigInt(minAge)
+            ]);
+
+            let feeDetails: any = undefined;
+
+            try {
+                // Try standard estimation (handles healthy RPCs)
+                await (this.account as any).estimateFee(call);
+            } catch (e) {
+                // Fallback for network/CORS issues: fetch nonce manually and use zero fee
+                try {
+                    const nonce = await this.provider.getNonceForAddress(this.account.address).catch(err => {
+                        if (err.message.toLowerCase().includes('contract not found')) return BigInt(0);
+                        throw err;
+                    });
+                    feeDetails = { maxFee: 0, nonce };
+                } catch (nonceErr) {
+                    feeDetails = { maxFee: 0 };
                 }
-            );
-            return res;
+            }
+
+            // @ts-ignore
+            return await (this.account).execute(call, undefined, feeDetails);
         } catch (error: any) {
-            console.error('[Noah] Transaction failed:', error?.message || error);
+            console.error('[Noah] Verify Credential Failed:', error?.message || error);
             throw error;
         }
     }
