@@ -6,7 +6,7 @@ import {
   NoahDataProvider,
   NoahEvent,
   NoahProverInputs,
-} from 'noah-sdk';
+} from 'noah-starknet';
 
 import circuitArtifact from "./assets/circuit.json";
 import vkUrl from './assets/vk.bin?url';
