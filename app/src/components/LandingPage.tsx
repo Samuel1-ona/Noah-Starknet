@@ -16,7 +16,8 @@ import {
     Bolt as FastIcon,
     Lock as SecureIcon,
     GitHub as GitHubIcon,
-    RocketLaunch as RocketIcon
+    RocketLaunch as RocketIcon,
+    ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { ProcessFlow } from './ProcessFlow';
 
@@ -139,6 +140,34 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                                     View GitHub
                                 </Button>
                             </Stack>
+
+                            <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'flex-start' } }}>
+                                <Box
+                                    onClick={() => navigator.clipboard.writeText('npm install noah-starknet')}
+                                    sx={{
+                                        py: 1.5,
+                                        px: 3,
+                                        borderRadius: 2,
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            background: 'rgba(255,255,255,0.05)',
+                                            borderColor: theme.palette.primary.main,
+                                            transform: 'translateY(-2px)'
+                                        }
+                                    }}
+                                >
+                                    <Typography sx={{ fontFamily: 'monospace', color: theme.palette.primary.light, fontWeight: 600 }}>
+                                        npm install noah-starknet
+                                    </Typography>
+                                    <ContentCopyIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                                </Box>
+                            </Box>
                         </Box>
                     </Grid>
 
