@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+
 // https://vite.dev/config/
 export default defineConfig({
   define: {
@@ -16,6 +18,14 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    nodePolyfills({
+      include: ['buffer', 'process', 'util', 'stream'],
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+    }),
     wasm(),
     topLevelAwait(),
     {
@@ -52,8 +62,9 @@ export default defineConfig({
     },
     fs: {
       allow: [
-        '/Users/machine/Documents/Noah-starknet/Noah-starknet/app',
-        '/Users/machine/Documents/Noah-starknet/Noah-starknet/sdk'
+        path.resolve(__dirname),
+        path.resolve(__dirname, '../sdk'),
+        path.resolve(__dirname, 'node_modules'),
       ]
     }
   }

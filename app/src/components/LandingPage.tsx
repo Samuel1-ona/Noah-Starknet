@@ -16,17 +16,9 @@ import {
     Bolt as FastIcon,
     Lock as SecureIcon,
     GitHub as GitHubIcon,
-    RocketLaunch as RocketIcon,
-    ContentCopy as CopyIcon,
-    Terminal as TerminalIcon
+    RocketLaunch as RocketIcon
 } from '@mui/icons-material';
-import { keyframes } from '@mui/system';
-
-const pulse = keyframes`
-  0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 20px rgba(100, 181, 246, 0.3)); }
-  50% { transform: translateY(-10px) scale(1.02); filter: drop-shadow(0 0 40px rgba(100, 181, 246, 0.5)); }
-  100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 20px rgba(100, 181, 246, 0.3)); }
-`;
+import { ProcessFlow } from './ProcessFlow';
 
 interface LandingPageProps {
     onLaunch: () => void;
@@ -76,39 +68,41 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
     return (
         <Box sx={{ overflowX: 'hidden' }}>
             {/* Hero Section */}
-            <Container maxWidth="lg" sx={{ pt: { xs: 8, md: 15 }, pb: { xs: 8, md: 10 } }}>
-                <Grid container spacing={4} alignItems="center">
-                    <Grid size={{ xs: 12, md: 7 }}>
-                        <Stack spacing={3}>
-                            <Box>
-                                <Chip
-                                    label="Live on Starknet Sepolia"
-                                    color="primary"
-                                    variant="outlined"
-                                    size="small"
-                                    sx={{ mb: 2, borderRadius: 1, borderColor: alpha(theme.palette.primary.main, 0.3), background: alpha(theme.palette.primary.main, 0.05) }}
-                                />
-                                <Typography variant="h1" sx={{
-                                    background: 'linear-gradient(90deg, #fff 0%, #64b5f6 100%)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                    mb: 1,
-                                    fontSize: { xs: '3.5rem', md: '5rem' },
-                                    lineHeight: 1.1,
-                                    fontWeight: 800
-                                }}>
-                                    Noah
-                                </Typography>
-                                <Typography variant="h4" color="text.secondary" sx={{ fontWeight: 400, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
-                                    Anonymous Passport Verification
-                                </Typography>
-                            </Box>
-
-                            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, lineHeight: 1.6, fontWeight: 400 }}>
+            <Container maxWidth="xl" sx={{ pt: { xs: 8, md: 12 }, pb: { xs: 8, md: 10 } }}>
+                <Grid container spacing={4} alignItems="center" sx={{ mb: 8 }}>
+                    <Grid item xs={12} md={7}>
+                        <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                            <Chip
+                                label="Live on Starknet Sepolia"
+                                color="primary"
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 3, borderRadius: 2, borderColor: alpha(theme.palette.primary.main, 0.3), background: alpha(theme.palette.primary.main, 0.05) }}
+                            />
+                            <Typography variant="h1" sx={{
+                                background: 'linear-gradient(90deg, #fff 0%, #64b5f6 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                mb: 2,
+                                fontSize: { xs: '2.5rem', md: '5rem' },
+                                lineHeight: 1.1,
+                                fontWeight: 800
+                            }}>
+                                Noah
+                            </Typography>
+                            <Typography variant="h2" sx={{
+                                fontSize: { xs: '1.8rem', md: '3rem' },
+                                fontWeight: 700,
+                                color: theme.palette.text.secondary,
+                                mb: 3
+                            }}>
+                                Identity Verified. <span style={{ color: theme.palette.primary.main }}>Privacy Preserved.</span>
+                            </Typography>
+                            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, mx: { xs: 'auto', md: 0 }, lineHeight: 1.6, fontWeight: 400, mb: 6 }}>
                                 A privacy-first identity layer for Starknet. Prove facts about yourself like age or residency using your physical e-Passport **without revealing personal data** to the blockchain.
                             </Typography>
 
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ pt: 2 }}>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent={{ xs: 'center', md: 'flex-start' }}>
                                 <Button
                                     variant="contained"
                                     size="large"
@@ -118,6 +112,7 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                                         px: 5,
                                         py: 1.8,
                                         fontSize: '1.1rem',
+                                        borderRadius: 4,
                                         boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`
                                     }}
                                 >
@@ -132,10 +127,9 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                                     startIcon={<GitHubIcon />}
                                     sx={{
                                         px: 4,
+                                        borderRadius: 4,
                                         borderColor: 'rgba(255,255,255,0.2)',
                                         color: 'white',
-                                        display: 'flex',
-                                        alignItems: 'center',
                                         '&:hover': {
                                             borderColor: 'white',
                                             background: 'rgba(255,255,255,0.05)'
@@ -145,65 +139,35 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                                     View GitHub
                                 </Button>
                             </Stack>
-
-                            {/* Installation snippet */}
-                            <Box sx={{
-                                mt: 2,
-                                p: 2,
-                                borderRadius: 3,
-                                background: 'rgba(0,0,0,0.3)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                maxWidth: 400,
-                                backdropFilter: 'blur(5px)'
-                            }}>
-                                <Stack direction="row" spacing={1.5} alignItems="center">
-                                    <TerminalIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-                                    <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem' }}>
-                                        npm i noah-starknet
-                                    </Typography>
-                                </Stack>
-                                <Button
-                                    size="small"
-                                    onClick={() => navigator.clipboard.writeText('npm i noah-starknet')}
-                                    sx={{ minWidth: 40, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}
-                                >
-                                    <CopyIcon sx={{ fontSize: 18 }} />
-                                </Button>
-                            </Box>
-                        </Stack>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 5 }} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
-                        <Box sx={{ position: 'relative' }}>
-                            <Box sx={{
-                                width: 340,
-                                height: 340,
-                                borderRadius: '50%',
-                                background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 70%)`,
-                                filter: 'blur(50px)',
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                zIndex: -1
-                            }} />
-                            <Box
-                                component="img"
-                                src="/logo.png"
-                                alt="Noah Logo"
-                                sx={{
-                                    width: { xs: 200, md: 280 },
-                                    height: 'auto',
-                                    filter: `drop-shadow(0 0 30px ${alpha(theme.palette.primary.main, 0.4)})`,
-                                    animation: `${pulse} 4s infinite ease-in-out`
-                                }}
-                            />
                         </Box>
                     </Grid>
+
+                    <Grid item xs={12} md={5} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+                        <Box
+                            component="img"
+                            src="/logo.png"
+                            alt="Noah Logo"
+                            sx={{
+                                width: '100%',
+                                maxWidth: 400,
+                                height: 'auto',
+                                filter: `drop-shadow(0 0 40px ${alpha(theme.palette.primary.main, 0.4)})`,
+                                animation: 'pulse 3s infinite ease-in-out',
+                                '@keyframes pulse': {
+                                    '0%': { transform: 'scale(1)' },
+                                    '50%': { transform: 'scale(1.05)' },
+                                    '100%': { transform: 'scale(1)' }
+                                }
+                            }}
+                        />
+                    </Grid>
                 </Grid>
+
+                {/* Process Flow Visualization */}
+                <Box sx={{ mt: 4 }}>
+                    <ProcessFlow />
+                </Box>
+
             </Container>
 
             {/* Why Noah Section */}
