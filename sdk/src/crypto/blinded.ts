@@ -1,4 +1,4 @@
-import { NoahStorage } from '../storage/base';
+import { NoahStorage } from '../storage/base.js';
 import { num } from 'starknet';
 
 /**

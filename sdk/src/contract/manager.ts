@@ -1,7 +1,8 @@
 import { Account, RpcProvider, AccountInterface } from 'starknet';
-import { NoahRegistry } from './registry';
+import { CallData } from 'starknet';
+import { NoahRegistry } from './registry.js';
 import registryAbi from '../../assets/abis/CredentialRegistry.json';
-import { NETWORKS, NoahNetwork, DEFAULT_NETWORK } from '../constants';
+import { NETWORKS, NoahNetwork, DEFAULT_NETWORK } from '../constants.js';
 
 export interface NoahConfig {
     network?: NoahNetwork;

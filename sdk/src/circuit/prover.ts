@@ -3,7 +3,7 @@ import { Noir } from '@noir-lang/noir_js';
 import { UltraHonkBackend, Barretenberg } from '@aztec/bb.js';
 import { CompiledCircuit } from '@noir-lang/types';
 import { getZKHonkCallData, init as initGaraga } from 'garaga';
-import { flattenFieldsAsArray } from '../utils/conversions';
+import { flattenFieldsAsArray } from '../utils/conversions.js';
 
 export interface NoahProverInputs {
     mrz: number[];

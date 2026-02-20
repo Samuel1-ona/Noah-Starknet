@@ -1,12 +1,12 @@
 import { CompiledCircuit } from '@noir-lang/types';
 import { EventEmitter } from 'eventemitter3';
-import { NoahProver, NoahProverInputs } from '../circuit/prover';
-import { NoahContractManager, NoahConfig } from '../contract/manager';
-import { NoahError, NoahProverError, NoahContractError } from '../utils/errors';
-import { NoahStorage } from '../storage/base';
-import { BrowserStorage } from '../storage/browser';
-import { NoahJobManager, JobStatus, NoahJob } from './jobs';
-import { NoahBlindedDataManager } from '../crypto/blinded';
+import { NoahProver, NoahProverInputs } from '../circuit/prover.js';
+import { NoahContractManager, NoahConfig } from '../contract/manager.js';
+import { NoahError, NoahProverError, NoahContractError } from '../utils/errors.js';
+import { NoahStorage } from '../storage/base.js';
+import { BrowserStorage } from '../storage/browser.js';
+import { NoahJobManager, JobStatus, NoahJob } from './jobs.js';
+import { NoahBlindedDataManager } from '../crypto/blinded.js';
 
 export interface OrchestratorConfig {
     circuitArtifact?: CompiledCircuit; // Optional if loading from remote
