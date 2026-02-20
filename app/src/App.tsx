@@ -11,6 +11,15 @@ import {
 import circuitArtifact from "./assets/circuit.json";
 import vkUrl from './assets/vk.bin?url';
 import { LandingPage } from './components/LandingPage';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+
+// Documentation Pages
+import { DocumentationLayout } from './components/docs/DocumentationLayout';
+import { Overview } from './components/docs/pages/Overview';
+import { UseCases } from './components/docs/pages/UseCases';
+import { Installation } from './components/docs/pages/Installation';
+import { Usage } from './components/docs/pages/Usage';
+import { Integration } from './components/docs/pages/Integration';
 
 // MUI Imports
 import {
@@ -155,7 +164,7 @@ function App() {
   const [orchestrator, setOrchestrator] = useState<NoahProofOrchestrator | null>(null);
   const [account, setAccount] = useState<any>(null); // Starknet account
   const [isAlreadyVerified, setIsAlreadyVerified] = useState<boolean>(false); // Prevent re-KYC
-  const [showLanding, setShowLanding] = useState<boolean>(true);
+  const navigate = useNavigate();
 
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
   const initializingRef = useRef<boolean>(false);
@@ -391,331 +400,341 @@ function App() {
     <ThemeProvider theme={premiumTheme}>
       <CssBaseline />
 
-      {showLanding ? (
-        <LandingPage onLaunch={() => setShowLanding(false)} />
-      ) : (
-        <Box sx={{
-          flexGrow: 1,
-          minHeight: '100vh',
-          py: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
+      <Routes>
+        <Route path="/" element={<LandingPage onLaunch={() => navigate('/verify')} />} />
 
-          {/* Background Overlay for texture (optional) */}
+        <Route path="/docs" element={<DocumentationLayout />}>
+          <Route index element={<Overview />} />
+          <Route path="use-cases" element={<UseCases />} />
+          <Route path="installation" element={<Installation />} />
+          <Route path="usage" element={<Usage />} />
+          <Route path="integration" element={<Integration />} />
+        </Route>
+
+        <Route path="/verify" element={
           <Box sx={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundImage: 'radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.05) 1px, transparent 0)',
-            backgroundSize: '40px 40px',
-            zIndex: -1,
-            opacity: 0.5
-          }} />
+            flexGrow: 1,
+            minHeight: '100vh',
+            py: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
 
-          {/* Header */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6, zIndex: 10, width: '100%', px: { xs: 3, sm: 5, md: 8 } }}>
-            <Box
-              onClick={() => setShowLanding(true)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                cursor: 'pointer',
-                transition: 'opacity 0.2s',
-                '&:hover': { opacity: 0.8 }
-              }}
-            >
-              <Box sx={{
-                p: 1,
-                borderRadius: '50%',
-                background: 'rgba(33, 150, 243, 0.1)',
-                border: '1px solid rgba(33, 150, 243, 0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 60, height: 60, overflow: 'hidden'
-              }}>
-                <img src="/logo.png" alt="Noah" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {/* Background Overlay for texture (optional) */}
+            <Box sx={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              backgroundImage: 'radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.05) 1px, transparent 0)',
+              backgroundSize: '40px 40px',
+              zIndex: -1,
+              opacity: 0.5
+            }} />
+
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6, zIndex: 10, width: '100%', px: { xs: 3, sm: 5, md: 8 } }}>
+              <Box
+                onClick={() => navigate('/')}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s',
+                  '&:hover': { opacity: 0.8 }
+                }}
+              >
+                <Box sx={{
+                  p: 1,
+                  borderRadius: '50%',
+                  background: 'rgba(33, 150, 243, 0.1)',
+                  border: '1px solid rgba(33, 150, 243, 0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 60, height: 60, overflow: 'hidden'
+                }}>
+                  <img src="/logo.png" alt="Noah" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </Box>
+                <Typography variant="h4" component="h1" sx={{
+                  background: 'linear-gradient(to right, #fff, #90caf9)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: '0 0 20px rgba(144, 202, 249, 0.3)',
+                  display: { xs: 'none', sm: 'block' }
+                }}>
+                  Noah
+                </Typography>
               </Box>
-              <Typography variant="h4" component="h1" sx={{
-                background: 'linear-gradient(to right, #fff, #90caf9)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                textShadow: '0 0 20px rgba(144, 202, 249, 0.3)',
-                display: { xs: 'none', sm: 'block' }
-              }}>
-                Noah
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button
+                  variant="text"
+                  startIcon={<HomeIcon />}
+                  onClick={() => navigate('/')}
+                  sx={{
+                    color: 'rgba(255,255,255,0.7)',
+                    display: { xs: 'none', md: 'flex' },
+                    '&:hover': { color: '#fff', background: 'rgba(255,255,255,0.05)' }
+                  }}
+                >
+                  Back to Home
+                </Button>
+
+                {!account ? (
+                  <Button
+                    variant="contained"
+                    startIcon={<WalletIcon />}
+                    onClick={handleConnectWallet}
+                    sx={{ borderRadius: 20 }}
+                  >
+                    Connect Wallet
+                  </Button>
+                ) : (
+                  <Chip
+                    icon={<WalletIcon sx={{ color: '#fff !important' }} />}
+                    label={
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>
+                        {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                      </Typography>
+                    }
+                    variant="outlined"
+                    onDelete={() => { setAccount(null); initOrchestrator(); }}
+                    sx={{
+                      borderColor: 'rgba(255,255,255,0.2)',
+                      background: 'rgba(255,255,255,0.05)',
+                      backdropFilter: 'blur(10px)',
+                      padding: '4px',
+                      '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+
+            {/* Main Content Card */}
+            <Container maxWidth="md">
+              <Card sx={{ p: 4, position: 'relative', overflow: 'visible' }}>
+
+                {/* Glow behind card */}
+                <Box sx={{
+                  position: 'absolute',
+                  top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '80%', height: '80%',
+                  background: 'radial-gradient(circle, rgba(33, 150, 243, 0.15) 0%, transparent 70%)',
+                  filter: 'blur(60px)',
+                  zIndex: -1
+                }} />
+
+                <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+
+                  {/* Stepper with glow on active step */}
+                  <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 6 }}>
+                    {steps.map((label) => (
+                      <Step key={label}>
+                        <StepLabel>{label}</StepLabel>
+                      </Step>
+                    ))}
+                  </Stepper>
+
+                  {/* Error Alert */}
+                  {proofState.error && (
+                    <Alert severity="error" sx={{ mb: 4, borderRadius: 3 }} onClose={() => updateState(currentStateRef.current)}>
+                      {proofState.error}
+                    </Alert>
+                  )}
+
+                  {/* Verified View (Success State) */}
+                  {isAlreadyVerified ? (
+                    <Box sx={{ textAlign: 'center', py: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Box sx={{
+                        position: 'relative',
+                        width: 120, height: 120,
+                        mb: 4
+                      }}>
+                        <Box sx={{
+                          position: 'absolute', inset: 0,
+                          border: '4px solid #00e676', borderRadius: '50%',
+                          animation: `${pulse} 2s infinite`
+                        }} />
+                        <CheckCircleIcon sx={{ fontSize: 120, color: '#00e676', position: 'relative', zIndex: 2 }} />
+                      </Box>
+
+                      <Typography variant="h3" gutterBottom sx={{ fontWeight: 700, color: '#fff' }}>
+                        Identity Verified
+                      </Typography>
+                      <Typography variant="h6" color="text.secondary" paragraph sx={{ maxWidth: 400, mx: 'auto', mb: 4 }}>
+                        Your passport has been anonymously verified. You can now access age-gated services without revealing your data.
+                      </Typography>
+
+                      <Chip
+                        icon={<LockIcon />}
+                        label="Zero-Knowledge Proof Valid"
+                        color="success"
+                        sx={{
+                          height: 40,
+                          borderRadius: 20,
+                          px: 2,
+                          fontSize: '0.9rem',
+                          fontWeight: 600
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    // Interaction Area
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+
+                      {!passportImage ? (
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            border: '2px dashed rgba(255,255,255,0.2)',
+                            borderRadius: 6,
+                            p: 8,
+                            cursor: 'pointer',
+                            background: 'rgba(255,255,255,0.02)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              background: 'rgba(33, 150, 243, 0.05)',
+                              transform: 'scale(1.01)'
+                            }
+                          }}
+                          component="label"
+                        >
+                          <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
+                          <Box sx={{
+                            width: 80, height: 80,
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.05)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            mx: 'auto', mb: 3
+                          }}>
+                            <UploadIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                          </Box>
+                          <Typography variant="h5" gutterBottom fontWeight="600">
+                            Upload Passport Photo
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400, mx: 'auto' }}>
+                            Drag & drop or click to scan the MRZ code. Your data is processed locally and never leaves your browser.
+                          </Typography>
+                        </Paper>
+                      ) : (
+                        <Box sx={{ mb: 4, position: 'relative' }}>
+                          <Box sx={{
+                            borderRadius: 4,
+                            overflow: 'hidden',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                          }}>
+                            <img
+                              src={passportImage}
+                              alt="Passport"
+                              style={{
+                                width: '100%',
+                                maxHeight: 300,
+                                objectFit: 'contain',
+                                display: 'block',
+                                background: '#000'
+                              }}
+                            />
+                          </Box>
+
+                          {mrzExtracted && (
+                            <Box sx={{
+                              position: 'absolute',
+                              bottom: 20,
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              padding: '8px 20px',
+                              background: 'rgba(0, 0, 0, 0.8)',
+                              backdropFilter: 'blur(10px)',
+                              borderRadius: 20,
+                              border: '1px solid rgba(76, 175, 80, 0.5)',
+                              display: 'flex', alignItems: 'center', gap: 1
+                            }}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                              <Typography variant="body2" fontWeight="600" color="success.main">
+                                MRZ Data Extracted
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Processing Indicator */}
+                      {(proofState.state !== ProofState.Initial && proofState.state !== ProofState.ProofVerified) && (
+                        <Box sx={{ my: 6, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <CircularProgress size={60} thickness={4} sx={{ mb: 3 }} />
+                          <Typography variant="h6" fontWeight="600">
+                            {proofState.state === ProofState.GeneratingWitness && "Processing Biometric Data..."}
+                            {proofState.state === ProofState.GeneratingProof && "Generating Zero-Knowledge Proof..."}
+                            {proofState.state === ProofState.SendingTransaction && "Verifying on Starknet..."}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            This calculates a cryptographic proof that you are over 18 without revealing your DOB.
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Success Message */}
+                      {proofState.state === ProofState.ProofVerified && !isAlreadyVerified && (
+                        <Box sx={{ my: 4, p: 3, background: 'rgba(0, 230, 118, 0.1)', borderRadius: 4, border: '1px solid rgba(0, 230, 118, 0.2)' }}>
+                          <Typography variant="h5" color="success.main" fontWeight="700" gutterBottom>
+                            Verification Successful!
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            You have successfully proved your identity.
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Actions */}
+                      <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                        {proofState.state === ProofState.Initial && (
+                          <Button
+                            variant="contained"
+                            size="large"
+                            onClick={startProcess}
+                            disabled={!mrzExtracted}
+                            sx={{
+                              px: 6, py: 1.5, fontSize: '1.1rem',
+                              background: !mrzExtracted ? 'rgba(255,255,255,0.1)' : undefined
+                            }}
+                          >
+                            Verify Identity
+                          </Button>
+                        )}
+
+                        {(proofState.error || (proofState.state === ProofState.ProofVerified && !isAlreadyVerified)) && (
+                          <Button
+                            variant="outlined"
+                            size="large"
+                            startIcon={<RestartIcon />}
+                            onClick={resetState}
+                            sx={{ px: 4, borderColor: 'rgba(255,255,255,0.3)', color: 'text.secondary' }}
+                          >
+                            Start Over
+                          </Button>
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Container>
+
+            {/* Footer */}
+            <Box sx={{ mt: 'auto', pt: 4, textAlign: 'center', opacity: 0.6 }}>
+              <Typography variant="caption" color="text.secondary">
+                Powered by Startknet & Garaga • Zero-Knowledge Identity Layer
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Button
-                variant="text"
-                startIcon={<HomeIcon />}
-                onClick={() => setShowLanding(true)}
-                sx={{
-                  color: 'rgba(255,255,255,0.7)',
-                  display: { xs: 'none', md: 'flex' },
-                  '&:hover': { color: '#fff', background: 'rgba(255,255,255,0.05)' }
-                }}
-              >
-                Back to Home
-              </Button>
-
-              {!account ? (
-                <Button
-                  variant="contained"
-                  startIcon={<WalletIcon />}
-                  onClick={handleConnectWallet}
-                  sx={{ borderRadius: 20 }}
-                >
-                  Connect Wallet
-                </Button>
-              ) : (
-                <Chip
-                  icon={<WalletIcon sx={{ color: '#fff !important' }} />}
-                  label={
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>
-                      {account.address.slice(0, 6)}...{account.address.slice(-4)}
-                    </Typography>
-                  }
-                  variant="outlined"
-                  onDelete={() => { setAccount(null); initOrchestrator(); }}
-                  sx={{
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    background: 'rgba(255,255,255,0.05)',
-                    backdropFilter: 'blur(10px)',
-                    padding: '4px',
-                    '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }
-                  }}
-                />
-              )}
-            </Box>
           </Box>
-
-          {/* Main Content Card */}
-          <Container maxWidth="md">
-            <Card sx={{ p: 4, position: 'relative', overflow: 'visible' }}>
-
-              {/* Glow behind card */}
-              <Box sx={{
-                position: 'absolute',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '80%', height: '80%',
-                background: 'radial-gradient(circle, rgba(33, 150, 243, 0.15) 0%, transparent 70%)',
-                filter: 'blur(60px)',
-                zIndex: -1
-              }} />
-
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-
-                {/* Stepper with glow on active step */}
-                <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 6 }}>
-                  {steps.map((label) => (
-                    <Step key={label}>
-                      <StepLabel>{label}</StepLabel>
-                    </Step>
-                  ))}
-                </Stepper>
-
-                {/* Error Alert */}
-                {proofState.error && (
-                  <Alert severity="error" sx={{ mb: 4, borderRadius: 3 }} onClose={() => updateState(currentStateRef.current)}>
-                    {proofState.error}
-                  </Alert>
-                )}
-
-                {/* Verified View (Success State) */}
-                {isAlreadyVerified ? (
-                  <Box sx={{ textAlign: 'center', py: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Box sx={{
-                      position: 'relative',
-                      width: 120, height: 120,
-                      mb: 4
-                    }}>
-                      <Box sx={{
-                        position: 'absolute', inset: 0,
-                        border: '4px solid #00e676', borderRadius: '50%',
-                        animation: `${pulse} 2s infinite`
-                      }} />
-                      <CheckCircleIcon sx={{ fontSize: 120, color: '#00e676', position: 'relative', zIndex: 2 }} />
-                    </Box>
-
-                    <Typography variant="h3" gutterBottom sx={{ fontWeight: 700, color: '#fff' }}>
-                      Identity Verified
-                    </Typography>
-                    <Typography variant="h6" color="text.secondary" paragraph sx={{ maxWidth: 400, mx: 'auto', mb: 4 }}>
-                      Your passport has been anonymously verified. You can now access age-gated services without revealing your data.
-                    </Typography>
-
-                    <Chip
-                      icon={<LockIcon />}
-                      label="Zero-Knowledge Proof Valid"
-                      color="success"
-                      sx={{
-                        height: 40,
-                        borderRadius: 20,
-                        px: 2,
-                        fontSize: '0.9rem',
-                        fontWeight: 600
-                      }}
-                    />
-                  </Box>
-                ) : (
-                  // Interaction Area
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-
-                    {!passportImage ? (
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          border: '2px dashed rgba(255,255,255,0.2)',
-                          borderRadius: 6,
-                          p: 8,
-                          cursor: 'pointer',
-                          background: 'rgba(255,255,255,0.02)',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            borderColor: 'primary.main',
-                            background: 'rgba(33, 150, 243, 0.05)',
-                            transform: 'scale(1.01)'
-                          }
-                        }}
-                        component="label"
-                      >
-                        <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
-                        <Box sx={{
-                          width: 80, height: 80,
-                          borderRadius: '50%',
-                          background: 'rgba(255,255,255,0.05)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          mx: 'auto', mb: 3
-                        }}>
-                          <UploadIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-                        </Box>
-                        <Typography variant="h5" gutterBottom fontWeight="600">
-                          Upload Passport Photo
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400, mx: 'auto' }}>
-                          Drag & drop or click to scan the MRZ code. Your data is processed locally and never leaves your browser.
-                        </Typography>
-                      </Paper>
-                    ) : (
-                      <Box sx={{ mb: 4, position: 'relative' }}>
-                        <Box sx={{
-                          borderRadius: 4,
-                          overflow: 'hidden',
-                          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-                          border: '1px solid rgba(255,255,255,0.1)'
-                        }}>
-                          <img
-                            src={passportImage}
-                            alt="Passport"
-                            style={{
-                              width: '100%',
-                              maxHeight: 300,
-                              objectFit: 'contain',
-                              display: 'block',
-                              background: '#000'
-                            }}
-                          />
-                        </Box>
-
-                        {mrzExtracted && (
-                          <Box sx={{
-                            position: 'absolute',
-                            bottom: 20,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            padding: '8px 20px',
-                            background: 'rgba(0, 0, 0, 0.8)',
-                            backdropFilter: 'blur(10px)',
-                            borderRadius: 20,
-                            border: '1px solid rgba(76, 175, 80, 0.5)',
-                            display: 'flex', alignItems: 'center', gap: 1
-                          }}>
-                            <CheckCircleIcon color="success" fontSize="small" />
-                            <Typography variant="body2" fontWeight="600" color="success.main">
-                              MRZ Data Extracted
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-
-                    {/* Processing Indicator */}
-                    {(proofState.state !== ProofState.Initial && proofState.state !== ProofState.ProofVerified) && (
-                      <Box sx={{ my: 6, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <CircularProgress size={60} thickness={4} sx={{ mb: 3 }} />
-                        <Typography variant="h6" fontWeight="600">
-                          {proofState.state === ProofState.GeneratingWitness && "Processing Biometric Data..."}
-                          {proofState.state === ProofState.GeneratingProof && "Generating Zero-Knowledge Proof..."}
-                          {proofState.state === ProofState.SendingTransaction && "Verifying on Starknet..."}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          This calculates a cryptographic proof that you are over 18 without revealing your DOB.
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {/* Success Message */}
-                    {proofState.state === ProofState.ProofVerified && !isAlreadyVerified && (
-                      <Box sx={{ my: 4, p: 3, background: 'rgba(0, 230, 118, 0.1)', borderRadius: 4, border: '1px solid rgba(0, 230, 118, 0.2)' }}>
-                        <Typography variant="h5" color="success.main" fontWeight="700" gutterBottom>
-                          Verification Successful!
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          You have successfully proved your identity.
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {/* Actions */}
-                    <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
-                      {proofState.state === ProofState.Initial && (
-                        <Button
-                          variant="contained"
-                          size="large"
-                          onClick={startProcess}
-                          disabled={!mrzExtracted}
-                          sx={{
-                            px: 6, py: 1.5, fontSize: '1.1rem',
-                            background: !mrzExtracted ? 'rgba(255,255,255,0.1)' : undefined
-                          }}
-                        >
-                          Verify Identity
-                        </Button>
-                      )}
-
-                      {(proofState.error || (proofState.state === ProofState.ProofVerified && !isAlreadyVerified)) && (
-                        <Button
-                          variant="outlined"
-                          size="large"
-                          startIcon={<RestartIcon />}
-                          onClick={resetState}
-                          sx={{ px: 4, borderColor: 'rgba(255,255,255,0.3)', color: 'text.secondary' }}
-                        >
-                          Start Over
-                        </Button>
-                      )}
-                    </Box>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Container>
-
-          {/* Footer */}
-          <Box sx={{ mt: 'auto', pt: 4, textAlign: 'center', opacity: 0.6 }}>
-            <Typography variant="caption" color="text.secondary">
-              Powered by Startknet & Garaga • Zero-Knowledge Identity Layer
-            </Typography>
-          </Box>
-
-        </Box>
-      )}
+        } />
+      </Routes>
     </ThemeProvider>
   );
 }

@@ -17,9 +17,11 @@ import {
     Lock as SecureIcon,
     GitHub as GitHubIcon,
     RocketLaunch as RocketIcon,
-    ContentCopy as ContentCopyIcon
+    ContentCopy as ContentCopyIcon,
+    MenuBook as MenuBookIcon
 } from '@mui/icons-material';
 import { ProcessFlow } from './ProcessFlow';
+import { Link } from 'react-router-dom';
 
 interface LandingPageProps {
     onLaunch: () => void;
@@ -138,6 +140,23 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                                     }}
                                 >
                                     View GitHub
+                                </Button>
+                                <Button
+                                    variant="text"
+                                    size="large"
+                                    component={Link}
+                                    to="/docs"
+                                    startIcon={<MenuBookIcon />}
+                                    sx={{
+                                        px: 3,
+                                        color: 'rgba(255,255,255,0.7)',
+                                        '&:hover': {
+                                            color: '#fff',
+                                            background: 'rgba(255,255,255,0.05)'
+                                        }
+                                    }}
+                                >
+                                    Read Docs
                                 </Button>
                             </Stack>
 
