@@ -71,7 +71,7 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
             {/* Hero Section */}
             <Container maxWidth="xl" sx={{ pt: { xs: 8, md: 12 }, pb: { xs: 8, md: 10 } }}>
                 <Grid container spacing={4} alignItems="center" sx={{ mb: 8 }}>
-                    <Grid item xs={12} md={7}>
+                    <Grid size={{ xs: 12, md: 7 }}>
                         <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
                             <Chip
                                 label="Live on Starknet Sepolia"
@@ -171,7 +171,7 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                         </Box>
                     </Grid>
 
-                    <Grid item xs={12} md={5} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+                    <Grid size={{ xs: 12, md: 5 }} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
                         <Box
                             component="img"
                             src="/logo.png"
