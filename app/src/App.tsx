@@ -176,9 +176,7 @@ function App() {
           circuitArtifact: circuitArtifact as any,
           vk: vk,
           starknet: {
-            providerUrl: import.meta.env.VITE_STARKNET_PROVIDER_URL,
-            registryAddress: import.meta.env.VITE_STARKNET_REGISTRY_ADDRESS,
-            accountAddress: import.meta.env.VITE_STARKNET_ACCOUNT_ADDRESS,
+            network: 'sepolia' as const,
           }
         };
 
@@ -302,11 +300,8 @@ function App() {
         circuitArtifact: circuitArtifact as any,
         vk: vk,
         starknet: {
-          providerUrl: import.meta.env.VITE_STARKNET_PROVIDER_URL,
-          registryAddress: import.meta.env.VITE_STARKNET_REGISTRY_ADDRESS,
+          network: 'sepolia' as const,
           account: connectedAccount,
-          accountAddress: connectedAccount ? undefined : import.meta.env.VITE_STARKNET_ACCOUNT_ADDRESS,
-          privateKey: connectedAccount ? undefined : import.meta.env.VITE_STARKNET_PRIVATE_KEY
         }
       };
 
