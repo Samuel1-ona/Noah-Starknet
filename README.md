@@ -20,17 +20,14 @@ Noah uses **Zero-Knowledge Proofs (ZKPs)** to bridge the physical and digital wo
 
 Here is what you can build with Noah:
 
-### 1.  Private Age Verification
-Allow users to access age-restricted content or purchase age-gated products (like alcohol or RWA tokens) by proving they are over 18. The dApp receives a simple `true/false`, mentioning *nothing* about the user's actual date of birth or name.
+### 1. Gaming & Web3 E-Sports
+Keep your leaderboards fair. Verify that each player is a unique human behind the keyboard, putting an end to multi-accounting and bots.
 
-### 2.  Sybil-Resistant Airdrops & Voting
-Ensure one person gets one vote (or one claim) without requiring them to KYC. Noah uses "nullifiers"—unique, anonymous identifiers derived from the passport—to prevent the same passport from being used twice, all while keeping the user's identity secret.
+### 2. Consumer Applications
+Age-gate your content or services effortlessly. Prove your user is over 18 without asking them to upload a photo of their ID card to your servers.
 
-### 3.  Residency & Location Gating
-Restrict access to services based on citizenship or jurisdiction (e.g., "US citizens only" or "exclude certain regions") without asking users to upload proof of address.
-
-### 4.  Bot Protection
-Instantly verify that a user is a real human (holding a real government-issued ID) to stop bot swarms from ruining ticket sales, mints, or gameplay.
+### 3. DeFi & RWA Platforms
+Onboard users securely. Meet strict KYC requirements while preserving your users' on-chain privacy.
 
 ---
 
