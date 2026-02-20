@@ -33,4 +33,11 @@ describe('Noah SDK Initialization', () => {
         const orchestrator = await NoahProofOrchestrator.new(config);
         expect(orchestrator).toBeDefined();
     });
+
+    it('should initialize with network defaults (Sepolia)', () => {
+        const manager = new NoahContractManager({ network: 'sepolia' });
+        expect(manager).toBeDefined();
+        expect(manager.provider).toBeDefined();
+        expect(manager.registry).toBeDefined();
+    });
 });

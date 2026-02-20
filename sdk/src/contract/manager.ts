@@ -1,15 +1,17 @@
 import { Account, RpcProvider, AccountInterface } from 'starknet';
 import { NoahRegistry } from './registry';
 import registryAbi from '../../assets/abis/CredentialRegistry.json';
+import { NETWORKS, NoahNetwork, DEFAULT_NETWORK } from '../constants';
 
 export interface NoahConfig {
-    providerUrl: string;
-    registryAddress: string;
-    chainId?: string; // e.g., 'SN_MAIN', 'SN_SEPOLIA', or custom for devnet
-    specVersion?: string; // e.g., '0.10' or '0.9'
-    blockIdentifier?: 'latest' | 'pending'; // Default: 'latest'
-    account?: AccountInterface; // Support existing Account or Wallet interface
-    accountAddress?: string; // Legacy / Direct support
+    network?: NoahNetwork;
+    providerUrl?: string;
+    registryAddress?: string;
+    chainId?: string;
+    specVersion?: string;
+    blockIdentifier?: 'latest' | 'pending';
+    account?: AccountInterface;
+    accountAddress?: string;
     privateKey?: string;
 }
 
@@ -20,19 +22,31 @@ export class NoahContractManager {
     public blockIdentifier: 'latest' | 'pending';
 
     constructor(config: NoahConfig) {
-        // Initialize provider with nodeUrl
+        const network = config.network || DEFAULT_NETWORK;
+        const networkConfig = NETWORKS[network];
+
+        const providerUrl = config.providerUrl || networkConfig.providerUrl;
+        const registryAddress = config.registryAddress || networkConfig.registryAddress;
+        const chainId = config.chainId || networkConfig.chainId;
+
+        if (!providerUrl) {
+            throw new Error(`Provider URL is required for network ${network}`);
+        }
+        if (!registryAddress) {
+            throw new Error(`Registry address is required for network ${network}`);
+        }
+
+        // Initialize provider
         this.provider = new RpcProvider({
-            nodeUrl: config.providerUrl,
-            chainId: config.chainId as any
+            nodeUrl: providerUrl,
+            chainId: chainId as any
         });
 
-        // Store blockIdentifier for use in method calls
         this.blockIdentifier = config.blockIdentifier || 'latest';
 
         if (config.account) {
             this.account = config.account;
         } else if (config.accountAddress && config.privateKey) {
-            // V9 style Account initialization MUST use a single options object.
             const account = new Account({
                 provider: this.provider,
                 address: config.accountAddress,
@@ -40,18 +54,16 @@ export class NoahContractManager {
             });
             this.account = account;
 
-            // Override getNonce to always use 'latest' block identifier
             const originalGetNonce = account.getNonce.bind(account);
             account.getNonce = async (blockIdentifier?: any) => {
                 return originalGetNonce(blockIdentifier || this.blockIdentifier);
             };
         }
 
-        // Handle case where registryAbi might be a full contract class artifact
         const abi = (registryAbi as any).abi || (registryAbi as any);
 
         this.registry = new NoahRegistry(
-            config.registryAddress,
+            registryAddress,
             abi,
             this.provider,
             this.account as any

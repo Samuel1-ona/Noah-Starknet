@@ -1,6 +1,6 @@
 {
     "name": "noah-starknet",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "SDK for Noah Anonymous Credentials on Starknet",
     "type": "module",
     "main": "./dist/index.js",

@@ -7,8 +7,8 @@ export * from './data/mrz';
 export * from './data/nfc';
 export * from './data/provider';
 export * from './utils/errors';
-export * from './orchestrator/proof';
 export * from './orchestrator/jobs';
 export * from './storage/base';
 export * from './storage/browser';
 export * from './crypto/blinded';
+
