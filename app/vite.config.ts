@@ -21,9 +21,9 @@ export default defineConfig({
     nodePolyfills({
       include: ['buffer', 'process', 'util', 'stream'],
       globals: {
-        Buffer: true,
-        global: true,
-        process: true,
+        Buffer: false,
+        global: false,
+        process: false,
       },
     }),
     wasm(),
@@ -46,15 +46,11 @@ export default defineConfig({
   resolve: {
     alias: {
       pino: path.resolve(__dirname, 'node_modules/pino/browser.js'),
-      buffer: path.resolve(__dirname, 'node_modules/buffer/index.js'),
-      'vite-plugin-node-polyfills/shims/buffer': path.resolve(__dirname, 'node_modules/buffer/index.js'),
-      process: path.resolve(__dirname, 'node_modules/process/index.js'),
-      'vite-plugin-node-polyfills/shims/process': path.resolve(__dirname, 'node_modules/process/index.js'),
       '@aztec/bb.js': path.resolve(__dirname, 'node_modules/@aztec/bb.js'),
     },
   },
   optimizeDeps: {
-    include: ['pino', 'buffer', 'process', 'vite-plugin-node-polyfills/shims/buffer', 'vite-plugin-node-polyfills/shims/process'],
+    include: ['pino'],
     exclude: ['@noir-lang/acvm_js', '@noir-lang/noirc_abi', '@noir-lang/noir_js', '@aztec/bb.js']
   },
   server: {
