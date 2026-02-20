@@ -256,8 +256,8 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
 
             {/* Use Cases Section */}
             <Container maxWidth="lg" sx={{ py: 12 }}>
-                <Grid container spacing={4} alignItems="center" sx={{ mb: 8 }}>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                <Grid container spacing={6} sx={{ mb: 8 }}>
+                    <Grid size={{ xs: 12, md: 5 }}>
                         <Typography variant="h3" gutterBottom fontWeight="700">
                             Powerful Use Cases
                         </Typography>
@@ -265,24 +265,33 @@ export const LandingPage = ({ onLaunch }: LandingPageProps) => {
                             The infrastructure for building truly private, high-trust applications on Starknet.
                         </Typography>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, md: 7 }}>
+                        <Stack spacing={4}>
                             {[
-                                "Private Age Gating",
-                                "Sybil-Resistant Airdrops",
-                                "Anonymous Voting",
-                                "Jurisdiction Compliance",
-                                "Bot Prevention",
-                                "On-chain Proof of Personhood"
+                                {
+                                    title: "Gaming & Web3 E-Sports",
+                                    desc: "Keep your leaderboards fair. Verify that each player is a unique human behind the keyboard, putting an end to multi-accounting and bots."
+                                },
+                                {
+                                    title: "Consumer Applications",
+                                    desc: "Age-gate your content or services effortlessly. Prove your user is over 18 without asking them to upload a photo of their ID card to your servers."
+                                },
+                                {
+                                    title: "DeFi & RWA Platforms",
+                                    desc: "Onboard users securely. Meet strict KYC requirements while preserving your users' on-chain privacy."
+                                }
                             ].map((item) => (
-                                <Grid size={{ xs: 12, sm: 6 }} key={item}>
-                                    <Stack direction="row" spacing={1.5} alignItems="center">
-                                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', background: theme.palette.primary.main }} />
-                                        <Typography variant="body1" fontWeight="500">{item}</Typography>
+                                <Box key={item.title}>
+                                    <Stack direction="row" spacing={2} alignItems="flex-start">
+                                        <Box sx={{ mt: 1, width: 8, height: 8, borderRadius: '50%', background: theme.palette.primary.main, flexShrink: 0 }} />
+                                        <Box>
+                                            <Typography variant="h6" fontWeight="600" gutterBottom>{item.title}</Typography>
+                                            <Typography variant="body1" color="text.secondary">{item.desc}</Typography>
+                                        </Box>
                                     </Stack>
-                                </Grid>
+                                </Box>
                             ))}
-                        </Grid>
+                        </Stack>
                     </Grid>
                 </Grid>
 
