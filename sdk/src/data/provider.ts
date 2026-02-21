@@ -1,6 +1,6 @@
-import { NoahMRZScanner } from './mrz';
-import { NFCPassportData, NoahNFCParser } from './nfc';
-import { NoahProverInputs } from '../circuit/prover';
+import { NoahMRZScanner } from './mrz.js';
+import { NFCPassportData, NoahNFCParser } from './nfc.js';
+import { NoahProverInputs } from '../circuit/prover.js';
 
 export type DataAcquisitionMethod = 'NFC' | 'OCR';
 

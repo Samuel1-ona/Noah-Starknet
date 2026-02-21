@@ -1,4 +1,4 @@
-import { NoahStorage } from '../storage/base';
+import { NoahStorage } from '../storage/base.js';
 
 export enum JobStatus {
     PENDING = 'PENDING',

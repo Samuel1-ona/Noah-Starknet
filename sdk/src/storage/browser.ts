@@ -1,4 +1,4 @@
-import { NoahStorage } from './base';
+import { NoahStorage } from './base.js';
 
 export class BrowserStorage implements NoahStorage {
     async getItem(key: string): Promise<string | null> {

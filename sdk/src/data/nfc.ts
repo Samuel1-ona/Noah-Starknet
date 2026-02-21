@@ -1,4 +1,4 @@
-import { NoahProverInputs } from '../circuit/prover';
+import { NoahProverInputs } from '../circuit/prover.js';
 
 export interface NFCPassportData {
     mrz: string; // The 88-char MRZ string read from the chip
