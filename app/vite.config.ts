@@ -48,6 +48,13 @@ export default defineConfig({
       pino: path.resolve(__dirname, 'node_modules/pino/browser.js'),
       '@aztec/bb.js': path.resolve(__dirname, 'node_modules/@aztec/bb.js'),
       'noah-starknet': path.resolve(__dirname, '../sdk/src/index.ts'),
+      'starknet': path.resolve(__dirname, 'node_modules/starknet'),
+      'ethers': path.resolve(__dirname, 'node_modules/ethers'),
+      'eventemitter3': path.resolve(__dirname, 'node_modules/eventemitter3'),
+      'garaga': path.resolve(__dirname, 'node_modules/garaga'),
+      '@noble/curves': path.resolve(__dirname, 'node_modules/@noble/curves'),
+      'msgpackr': path.resolve(__dirname, 'node_modules/msgpackr'),
+      'tesseract.js': path.resolve(__dirname, 'node_modules/tesseract.js'),
     },
   },
   optimizeDeps: {
