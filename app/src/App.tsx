@@ -413,7 +413,7 @@ function App() {
       <CssBaseline />
 
       <Routes>
-        <Route path="/" element={<LandingPage onLaunch={() => navigate('/verify')} onOpenPitch={() => setPitchVisible(true)} />} />
+        <Route path="/" element={<LandingPage onLaunch={() => navigate('/verify')} onOpenPitch={() => setPitchVisible(true)} onReadDocs={() => navigate('/docs')} />} />
 
         <Route path="/docs" element={<DocumentationLayout />}>
           <Route index element={<Overview />} />

@@ -15,14 +15,15 @@ import { ProcessFlow } from './ProcessFlow';
 interface LandingPageProps {
     onLaunch: () => void;
     onOpenPitch: () => void;
+    onReadDocs: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onOpenPitch }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onOpenPitch, onReadDocs }) => {
     const theme = useTheme();
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', overflow: 'hidden' }}>
-            <Hero onLaunchDemo={onLaunch} onOpenPitch={onOpenPitch} />
+            <Hero onLaunchDemo={onLaunch} onOpenPitch={onOpenPitch} onReadDocs={onReadDocs} />
 
             <ProcessFlow />
 

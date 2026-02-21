@@ -6,9 +6,10 @@ import { Box, Typography, Button, Container, Stack, alpha, useTheme } from '@mui
 interface HeroProps {
     onLaunchDemo: () => void;
     onOpenPitch: () => void;
+    onReadDocs: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onLaunchDemo, onOpenPitch }) => {
+export const Hero: React.FC<HeroProps> = ({ onLaunchDemo, onOpenPitch, onReadDocs }) => {
     const theme = useTheme();
 
     return (
@@ -104,6 +105,23 @@ export const Hero: React.FC<HeroProps> = ({ onLaunchDemo, onOpenPitch }) => {
                             }}
                         >
                             View Pitch Deck
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            size="large"
+                            onClick={onReadDocs}
+                            sx={{
+                                px: 4,
+                                borderRadius: 4,
+                                borderColor: 'rgba(255,255,255,0.2)',
+                                color: 'white',
+                                '&:hover': {
+                                    borderColor: 'white',
+                                    background: 'rgba(255,255,255,0.05)'
+                                }
+                            }}
+                        >
+                            Read Docs
                         </Button>
                         <Button
                             variant="outlined"
