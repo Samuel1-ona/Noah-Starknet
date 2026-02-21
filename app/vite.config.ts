@@ -47,6 +47,7 @@ export default defineConfig({
     alias: {
       pino: path.resolve(__dirname, 'node_modules/pino/browser.js'),
       '@aztec/bb.js': path.resolve(__dirname, 'node_modules/@aztec/bb.js'),
+      'noah-starknet': path.resolve(__dirname, '../sdk/dist/index.js'),
     },
   },
   optimizeDeps: {
