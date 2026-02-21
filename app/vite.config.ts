@@ -55,6 +55,8 @@ export default defineConfig({
       '@noble/curves': path.resolve(__dirname, 'node_modules/@noble/curves'),
       'msgpackr': path.resolve(__dirname, 'node_modules/msgpackr'),
       'tesseract.js': path.resolve(__dirname, 'node_modules/tesseract.js'),
+      '@noir-lang/noir_js': path.resolve(__dirname, 'node_modules/@noir-lang/noir_js'),
+      '@noir-lang/types': path.resolve(__dirname, 'node_modules/@noir-lang/types'),
     },
   },
   optimizeDeps: {
