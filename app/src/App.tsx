@@ -11,7 +11,9 @@ import {
 import circuitArtifact from "./assets/circuit.json";
 import vkUrl from './assets/vk.bin?url';
 import { LandingPage } from './components/LandingPage';
+import { PitchDeck } from './components/PitchDeck';
 import { Routes, Route, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 
 // Documentation Pages
 import { DocumentationLayout } from './components/docs/DocumentationLayout';
@@ -39,15 +41,16 @@ import {
   CssBaseline,
   Chip,
   Paper,
-  keyframes
+  keyframes,
+  Grid
 } from '@mui/material';
+import { Zap } from 'lucide-react';
 import {
   CloudUpload as UploadIcon,
   CheckCircle as CheckCircleIcon,
   AccountBalanceWallet as WalletIcon,
-  Lock as LockIcon,
   Refresh as RestartIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
 } from '@mui/icons-material';
 
 // --- Theme & Styles ---
@@ -164,6 +167,7 @@ function App() {
   const [orchestrator, setOrchestrator] = useState<NoahProofOrchestrator | null>(null);
   const [account, setAccount] = useState<any>(null); // Starknet account
   const [isAlreadyVerified, setIsAlreadyVerified] = useState<boolean>(false); // Prevent re-KYC
+  const [pitchVisible, setPitchVisible] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
@@ -232,6 +236,14 @@ function App() {
       state: currentStateRef.current,
       error: errorMessage
     });
+  };
+
+  const autoFillDemoData = async () => {
+    // Judge Mode: Auto-fill a valid test identity
+    const demoMrz = "P<UTOPEA<<DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<G678901234UTO9001015M2501012<<<<<<<<<<<<<<02";
+    setMrzExtracted(demoMrz);
+    setPassportImage("https://placehold.co/600x400/121212/64b5f6?text=DEMO+PASSPORT+IDENTITY");
+    updateState(ProofState.Initial);
   };
 
   const updateState = (newState: ProofState) => {
@@ -401,7 +413,7 @@ function App() {
       <CssBaseline />
 
       <Routes>
-        <Route path="/" element={<LandingPage onLaunch={() => navigate('/verify')} />} />
+        <Route path="/" element={<LandingPage onLaunch={() => navigate('/verify')} onOpenPitch={() => setPitchVisible(true)} />} />
 
         <Route path="/docs" element={<DocumentationLayout />}>
           <Route index element={<Overview />} />
@@ -561,25 +573,39 @@ function App() {
                         <CheckCircleIcon sx={{ fontSize: 120, color: '#00e676', position: 'relative', zIndex: 2 }} />
                       </Box>
 
-                      <Typography variant="h3" gutterBottom sx={{ fontWeight: 700, color: '#fff' }}>
-                        Identity Verified
-                      </Typography>
-                      <Typography variant="h6" color="text.secondary" paragraph sx={{ maxWidth: 400, mx: 'auto', mb: 4 }}>
-                        Your passport has been anonymously verified. You can now access age-gated services without revealing your data.
-                      </Typography>
+                      {/* Reward/Outcome Reveal (Win Hackathon!) */}
+                      <Box sx={{ mt: 6, p: 4, borderRadius: 6, background: 'rgba(100, 181, 246, 0.05)', border: '1px solid rgba(100, 181, 246, 0.2)', maxWidth: 600 }}>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                          <Zap color="#64b5f6" /> Verified Unlocked: Premium Area
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                          Because you have proved your identity anonymously, you now have access to the Noah Restricted Dashboard.
+                        </Typography>
+                        <Grid container spacing={2}>
+                          {[
+                            { title: "Exclusive Drop", val: "0.1 STRK Gated" },
+                            { title: "Age Gate status", val: "Over 18 Verified" },
+                            { title: "Sybil Score", val: "100/100 (Unique Human)" }
+                          ].map(item => (
+                            <Grid size={{ xs: 12, sm: 4 }} key={item.title}>
+                              <Box sx={{ p: 2, borderRadius: 3, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <Typography variant="caption" sx={{ textTransform: 'uppercase', opacity: 0.5, display: 'block' }}>{item.title}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{item.val}</Typography>
+                              </Box>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Box>
 
-                      <Chip
-                        icon={<LockIcon />}
-                        label="Zero-Knowledge Proof Valid"
-                        color="success"
-                        sx={{
-                          height: 40,
-                          borderRadius: 20,
-                          px: 2,
-                          fontSize: '0.9rem',
-                          fontWeight: 600
-                        }}
-                      />
+                      <Button
+                        variant="outlined"
+                        size="large"
+                        startIcon={<RestartIcon />}
+                        onClick={resetState}
+                        sx={{ mt: 4, px: 4, borderColor: 'rgba(255,255,255,0.3)', color: 'text.secondary' }}
+                      >
+                        Reset Demo
+                      </Button>
                     </Box>
                   ) : (
                     // Interaction Area
@@ -619,6 +645,15 @@ function App() {
                           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400, mx: 'auto' }}>
                             Drag & drop or click to scan the MRZ code. Your data is processed locally and never leaves your browser.
                           </Typography>
+
+                          <Button
+                            variant="text"
+                            size="small"
+                            onClick={(e) => { e.preventDefault(); autoFillDemoData(); }}
+                            sx={{ mt: 3, opacity: 0.7, color: 'primary.main', fontWeight: 700 }}
+                          >
+                            [ ENTER JUDGE MODE: AUTO-FILL TEST PASSPORT ]
+                          </Button>
                         </Paper>
                       ) : (
                         <Box sx={{ mb: 4, position: 'relative' }}>
@@ -735,6 +770,12 @@ function App() {
           </Box>
         } />
       </Routes>
+
+      <AnimatePresence>
+        {pitchVisible && (
+          <PitchDeck onClose={() => setPitchVisible(false)} />
+        )}
+      </AnimatePresence>
     </ThemeProvider>
   );
 }
