@@ -238,13 +238,6 @@ function App() {
     });
   };
 
-  const autoFillDemoData = async () => {
-    // Judge Mode: Auto-fill a valid test identity
-    const demoMrz = "P<UTOPEA<<DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<G678901234UTO9001015M2501012<<<<<<<<<<<<<<02";
-    setMrzExtracted(demoMrz);
-    setPassportImage("https://placehold.co/600x400/121212/64b5f6?text=DEMO+PASSPORT+IDENTITY");
-    updateState(ProofState.Initial);
-  };
 
   const updateState = (newState: ProofState) => {
     currentStateRef.current = newState;
@@ -646,14 +639,6 @@ function App() {
                             Drag & drop or click to scan the MRZ code. Your data is processed locally and never leaves your browser.
                           </Typography>
 
-                          <Button
-                            variant="text"
-                            size="small"
-                            onClick={(e) => { e.preventDefault(); autoFillDemoData(); }}
-                            sx={{ mt: 3, opacity: 0.7, color: 'primary.main', fontWeight: 700 }}
-                          >
-                            [ ENTER JUDGE MODE: AUTO-FILL TEST PASSPORT ]
-                          </Button>
                         </Paper>
                       ) : (
                         <Box sx={{ mb: 4, position: 'relative' }}>
