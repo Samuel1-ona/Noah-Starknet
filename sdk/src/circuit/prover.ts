@@ -4,26 +4,30 @@ import { UltraHonkBackend, Barretenberg } from '@aztec/bb.js';
 import { CompiledCircuit } from '@noir-lang/types';
 import { getZKHonkCallData, init as initGaraga } from 'garaga';
 import { flattenFieldsAsArray } from '../utils/conversions.js';
+import type { NoahDocumentType } from '../data/mrz.js';
 
 export interface NoahProverInputs {
     mrz: number[];
-    pub_key_x: number[];
-    pub_key_y: number[];
-    signature: number[];
-    hashed_mrz: number[];
-    jurisdiction_root: string | number | bigint;
-    jurisdiction_index: string | number | bigint;
-    jurisdiction_hash_path: string[] | number[] | bigint[];
-    membership_root: string | number | bigint;
-    membership_index: string | number | bigint;
-    membership_hash_path: string[] | number[] | bigint[];
-    action_id: string | number | bigint;
-    nullifier: string | number | bigint;
+    doc_type: NoahDocumentType;
     user_secret: string | number | bigint;
-    current_year: string | number | bigint;
-    current_month: string | number | bigint;
-    current_day: string | number | bigint;
-    min_age: string | number | bigint;
+    merkle_path: string[] | number[] | bigint[];
+    is_left: boolean[];
+    passport_root: string | number | bigint;
+    nullifier: string | number | bigint;
+    name_hash: string | number | bigint;
+    doc_num_hash: string | number | bigint;
+    birth_year: string | number | bigint;
+    expiry_date: string | number | bigint;
+    user_address?: string; // Optional target address for sponsored verification
+}
+
+export interface NoahVerificationPublicInputs {
+    passportRoot: string | number | bigint;
+    nullifier: string | number | bigint;
+    nameHash: string | number | bigint;
+    docNumHash: string | number | bigint;
+    birthYear: string | number | bigint;
+    expiryDate: string | number | bigint;
 }
 
 export class NoahProver {
@@ -148,6 +152,21 @@ export class NoahProver {
         // We convert to string[] for Starknet.js
         return callData.map(x => x.toString());
 
+    }
+
+    static extractVerificationPublicInputs(publicInputs: Array<string | number | bigint>): NoahVerificationPublicInputs {
+        if (publicInputs.length !== 6) {
+            throw new Error(`Expected 6 public inputs, received ${publicInputs.length}`);
+        }
+
+        return {
+            passportRoot: publicInputs[0],
+            nullifier: publicInputs[1],
+            nameHash: publicInputs[2],
+            docNumHash: publicInputs[3],
+            birthYear: publicInputs[4],
+            expiryDate: publicInputs[5]
+        };
     }
 
     setVk(vk: Uint8Array) {

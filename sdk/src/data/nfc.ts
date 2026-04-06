@@ -1,70 +1,75 @@
 import { NoahProverInputs } from '../circuit/prover.js';
+import { NoahDocumentType, NoahMRZDocument, NoahMRZScanner } from './mrz.js';
+import { NoahScanError } from '../utils/errors.js';
 
-export interface NFCPassportData {
-    mrz: string; // The 88-char MRZ string read from the chip
-    signature: Uint8Array | string; // The ECDSA signature (64 bytes)
-    publicKeyX: Uint8Array | string; // 32 bytes
-    publicKeyY: Uint8Array | string; // 32 bytes
-    hashedMRZ: Uint8Array | string; // SHA256 of the MRZ
+export interface NoahDocumentData {
+    mrz: string;
+    docType: NoahDocumentType;
+}
+
+export interface NoahCircuitInputOptions {
+    passportRoot: string | bigint | number;
+    merklePath: Array<string | bigint | number>;
+    isLeft: boolean[];
+    nullifier: string | bigint | number;
+    nameHash: string | bigint | number;
+    docNumHash: string | bigint | number;
+    userSecret: string | bigint | number;
+    birthYear?: string | bigint | number;
+    expiryDate?: string | bigint | number;
+    userAddress?: string;
 }
 
 export class NoahNFCParser {
     /**
-     * Maps raw NFC data to the format required by the NoahProver.
-     * This handles hex string to number array conversions.
+     * Builds circuit-ready prover inputs from normalized MRZ data.
+     * The current circuit only consumes MRZ + Merkle/public inputs, so the same
+     * builder works for OCR flows and NFC readers that expose MRZ text.
      */
     static createProverInputs(
-        data: NFCPassportData,
-        additional: {
-            jurisdictionRoot: string | bigint;
-            jurisdictionIndex: number | bigint;
-            jurisdictionHashPath: string[] | bigint[];
-            membershipRoot: string | bigint;
-            membershipIndex: number | bigint;
-            membershipHashPath: string[] | bigint[];
-            actionId: string | bigint;
-            nullifier: string | bigint;
-            userSecret: string | bigint;
-            currentDate: { year: number; month: number; day: number };
-            minAge: number;
-        }
+        data: NoahDocumentData | NoahMRZDocument,
+        additional: NoahCircuitInputOptions
     ): NoahProverInputs {
+        const normalized = NoahMRZScanner.normalizeDocument(data.mrz, data.docType);
+
+        if (additional.merklePath.length !== 20) {
+            throw new NoahScanError(`Expected merklePath to contain 20 siblings, received ${additional.merklePath.length}`);
+        }
+
+        if (additional.isLeft.length !== 20) {
+            throw new NoahScanError(`Expected isLeft to contain 20 direction flags, received ${additional.isLeft.length}`);
+        }
+
+        const birthYear = additional.birthYear !== undefined ? BigInt(additional.birthYear) : BigInt(normalized.birthYear);
+        const expiryDate = additional.expiryDate !== undefined ? BigInt(additional.expiryDate) : BigInt(normalized.expiryDate);
+
+        if (birthYear !== BigInt(normalized.birthYear)) {
+            throw new NoahScanError(`birthYear does not match the normalized ${normalized.format} MRZ payload`);
+        }
+
+        if (expiryDate !== BigInt(normalized.expiryDate)) {
+            throw new NoahScanError(`expiryDate does not match the normalized ${normalized.format} MRZ payload`);
+        }
+
         return {
-            mrz: this.toArray(data.mrz),
-            pub_key_x: this.toUint8Array(data.publicKeyX),
-            pub_key_y: this.toUint8Array(data.publicKeyY),
-            signature: this.toUint8Array(data.signature),
-            hashed_mrz: this.toUint8Array(data.hashedMRZ),
-            jurisdiction_root: additional.jurisdictionRoot,
-            jurisdiction_index: additional.jurisdictionIndex,
-            jurisdiction_hash_path: additional.jurisdictionHashPath as any,
-            membership_root: additional.membershipRoot,
-            membership_index: additional.membershipIndex,
-            membership_hash_path: additional.membershipHashPath as any,
-            action_id: additional.actionId,
-            nullifier: additional.nullifier,
+            mrz: this.toArray(normalized.circuitMrz),
+            doc_type: normalized.docType,
             user_secret: additional.userSecret,
-            current_year: additional.currentDate.year,
-            current_month: additional.currentDate.month,
-            current_day: additional.currentDate.day,
-            min_age: additional.minAge,
+            merkle_path: additional.merklePath as any,
+            is_left: additional.isLeft,
+            passport_root: additional.passportRoot,
+            nullifier: additional.nullifier,
+            name_hash: additional.nameHash,
+            doc_num_hash: additional.docNumHash,
+            birth_year: birthYear,
+            expiry_date: expiryDate,
+            user_address: additional.userAddress
         };
     }
 
     private static toArray(mrz: string): number[] {
         return Array.from(mrz).map(c => c.charCodeAt(0));
     }
-
-    private static toUint8Array(data: Uint8Array | string): any {
-        if (data instanceof Uint8Array) {
-            return Array.from(data);
-        }
-        // Handle hex string
-        const hex = data.startsWith('0x') ? data.slice(2) : data;
-        const result = [];
-        for (let i = 0; i < hex.length; i += 2) {
-            result.push(parseInt(hex.slice(i, i + 2), 16));
-        }
-        return result;
-    }
 }
+
+export type NFCPassportData = NoahDocumentData;

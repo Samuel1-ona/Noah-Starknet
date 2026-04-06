@@ -1,5 +1,5 @@
-import { NoahMRZScanner } from './mrz.js';
-import { NFCPassportData, NoahNFCParser } from './nfc.js';
+import { NoahDocumentData, NoahCircuitInputOptions, NoahNFCParser } from './nfc.js';
+import { NoahMRZScanner, NoahMRZScanOptions } from './mrz.js';
 import { NoahProverInputs } from '../circuit/prover.js';
 
 export type DataAcquisitionMethod = 'NFC' | 'OCR';
@@ -12,26 +12,22 @@ export class NoahDataProvider {
     }
 
     /**
-     * High-level entry point for developers to get ZK inputs from a passport image (OCR).
-     * Note: This only provides the MRZ part. Authenticity fields like signature 
-     * must still be provided by the developer or a certification authority.
+     * High-level entry point for developers to turn an OCR image into circuit-ready inputs.
      */
     async fromImage(
         imageSource: string | Uint8Array,
-        authenticity: Omit<NFCPassportData, 'mrz'>,
-        additional: any
+        additional: NoahCircuitInputOptions,
+        options: NoahMRZScanOptions = {}
     ): Promise<NoahProverInputs> {
-        const mrz = await this.scanner.scanImage(imageSource);
-        return NoahNFCParser.createProverInputs(
-            { ...authenticity, mrz },
-            additional
-        );
+        const document = await this.scanner.scanDocument(imageSource, options);
+        return NoahNFCParser.createProverInputs(document, additional);
     }
 
     /**
-     * High-level entry point for developers to get ZK inputs from NFC chip data.
+     * High-level entry point for developers to turn MRZ data from an NFC reader into
+     * circuit-ready inputs.
      */
-    fromNFC(data: NFCPassportData, additional: any): NoahProverInputs {
+    fromNFC(data: NoahDocumentData, additional: NoahCircuitInputOptions): NoahProverInputs {
         return NoahNFCParser.createProverInputs(data, additional);
     }
 

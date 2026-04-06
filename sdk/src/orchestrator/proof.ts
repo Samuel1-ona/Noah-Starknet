@@ -67,6 +67,7 @@ export class NoahProofOrchestrator extends EventEmitter {
     async proveAndVerify(inputs: NoahProverInputs) {
         const jobId = Math.random().toString(36).substring(7);
         const job: NoahJob = { id: jobId, status: JobStatus.PENDING, timestamp: Date.now() };
+        let failedDuring: 'proving' | 'submission' = 'proving';
 
         try {
             if (!this.prover) throw new NoahProverError('Prover not initialized');
@@ -84,19 +85,24 @@ export class NoahProofOrchestrator extends EventEmitter {
             const proof = await this.prover.generateProof(inputs);
             this.emit(NoahEvent.PROOF_GENERATION_SUCCESS, proof);
 
+            failedDuring = 'submission';
             this.emit(NoahEvent.TRANSACTION_SUBMISSION_START);
             const calldata = await this.prover.getStarknetCalldata(proof);
+            const publicInputs = NoahProver.extractVerificationPublicInputs(proof.publicInputs);
+
+            // If we are using an adminAccount (sponsored), we can verify for ANY user address.
+            // If we are a user-only setup, we verify for ourselves.
+            const targetUser = inputs.user_address || (this.contracts.account ? this.contracts.account.address : undefined);
 
             const tx = await this.contracts.registry.verifyCredential(
                 calldata,
-                inputs.current_year,
-                inputs.current_month,
-                inputs.current_day,
-                inputs.min_age
+                publicInputs,
+                targetUser
             );
 
             job.status = JobStatus.COMPLETED;
             job.transactionHash = tx.transaction_hash;
+            job.publicInputs = proof.publicInputs;
             await this.jobs.saveJob(job);
             this.emit(NoahEvent.JOB_UPDATED, job);
             this.emit(NoahEvent.TRANSACTION_SUBMISSION_SUCCESS, tx);
@@ -119,9 +125,12 @@ export class NoahProofOrchestrator extends EventEmitter {
             await this.jobs.saveJob(job);
             this.emit(NoahEvent.JOB_UPDATED, job);
 
-            const noahError = error instanceof NoahError
-                ? error
-                : new NoahProverError(errorMessage);
+            const noahError =
+                error instanceof NoahError
+                    ? error
+                    : failedDuring === 'proving'
+                        ? new NoahProverError(errorMessage)
+                        : new NoahContractError(errorMessage);
 
             (noahError as any).originalError = error;
 

@@ -1,16 +1,21 @@
-import { Contract, Account, RpcProvider, Abi, uint256, CallData } from 'starknet';
+import { Contract, RpcProvider, Abi, AccountInterface } from 'starknet';
+import { NoahVerificationPublicInputs } from '../circuit/prover.js';
 
 export class NoahRegistry {
     private contract: Contract;
     private readContract: Contract;
     private provider: RpcProvider;
-    private account?: Account;
+    private account?: AccountInterface;
+    private adminAccount?: AccountInterface;
+    private configuredVerifierAddress?: string;
 
     constructor(
         address: string,
         abi: Abi,
         provider: RpcProvider,
-        account?: Account
+        account?: AccountInterface,
+        adminAccount?: AccountInterface,
+        configuredVerifierAddress?: string
     ) {
         // Ensure abi is a clean array and use the object-based constructor for v9
         const cleanAbi = Array.isArray(abi) ? [...abi] : abi;
@@ -18,12 +23,10 @@ export class NoahRegistry {
         this.contract = new Contract({
             abi: cleanAbi,
             address,
-            providerOrAccount: account || provider
+            providerOrAccount: adminAccount || account || provider
         });
 
         // Create a separate contract instance for read-only calls using the provider directly.
-        // This avoids issues where the wallet's provider (account) might be using a node 
-        // with strict CORS policies (like blastapi) that block client-side calls.
         this.readContract = new Contract({
             abi: cleanAbi,
             address,
@@ -32,58 +35,50 @@ export class NoahRegistry {
 
         this.provider = provider;
         this.account = account;
+        this.adminAccount = adminAccount;
+        this.configuredVerifierAddress = configuredVerifierAddress;
     }
 
     /**
-     * Verifies a credential on-chain
+     * Verifies a credential on-chain.
+     * Uses the adminAccount (sponsored) if available.
      * @param proof The Garaga proof calldata (Span<felt252>)
-     * @param currentYear Current year as u256
-     * @param currentMonth Current month as u256
-     * @param currentDay Current day as u256
-     * @param minAge Minimum age required as u256
+     * @param publicInputs The six public outputs emitted by the Noir circuit
+     * @param targetUser The address to verify (usually this.account.address)
      */
     async verifyCredential(
         proof: string[],
-        currentYear: string | bigint | number,
-        currentMonth: string | bigint | number,
-        currentDay: string | bigint | number,
-        minAge: string | bigint | number
+        publicInputs: NoahVerificationPublicInputs,
+        targetUser?: string
     ) {
-        if (!this.account) {
-            throw new Error('Account is required for write operations');
+        // If we have an admin account, it will sign and pay for the gas.
+        // If not, we fall back to the user's account.
+        const signer = this.adminAccount || this.account;
+        
+        if (!signer) {
+            throw new Error('An account (User or Admin) is required for write operations');
         }
 
-        console.log('[Noah] Verifying credential...');
+        // Use account address from config as target if not specified
+        const userToVerify = targetUser || (this.account ? this.account.address : undefined);
+        if (!userToVerify) {
+            throw new Error('Target user address is required for verification');
+        }
 
         try {
             const call = this.contract.populate("verify_credential", [
+                userToVerify,
                 proof,
-                BigInt(currentYear),
-                BigInt(currentMonth),
-                BigInt(currentDay),
-                BigInt(minAge)
+                BigInt(publicInputs.passportRoot),
+                BigInt(publicInputs.nullifier),
+                BigInt(publicInputs.nameHash),
+                BigInt(publicInputs.docNumHash),
+                toU32(publicInputs.birthYear),
+                toU32(publicInputs.expiryDate)
             ]);
 
-            let feeDetails: any = undefined;
-
-            try {
-                // Try standard estimation (handles healthy RPCs)
-                await (this.account as any).estimateFee(call);
-            } catch (e) {
-                // Fallback for network/CORS issues: fetch nonce manually and use zero fee
-                try {
-                    const nonce = await this.provider.getNonceForAddress(this.account.address).catch(err => {
-                        if (err.message.toLowerCase().includes('contract not found')) return BigInt(0);
-                        throw err;
-                    });
-                    feeDetails = { maxFee: 0, nonce };
-                } catch (nonceErr) {
-                    feeDetails = { maxFee: 0 };
-                }
-            }
-
             // @ts-ignore
-            return await (this.account).execute(call, undefined, feeDetails);
+            return await signer.execute(call);
         } catch (error: any) {
             console.error('[Noah] Verify Credential Failed:', error?.message || error);
             throw error;
@@ -91,19 +86,57 @@ export class NoahRegistry {
     }
 
     /**
-     * Adds a jurisdiction root (Admin only)
+     * Administrative: Role Management
      */
-    async addJurisdictionRoot(root: bigint | string) {
-        if (!this.account) throw new Error('Account required');
-        return await this.contract.add_jurisdiction_root(root);
+    async grantIssuerManager(account: string) {
+        return this.executeAdminCall("grant_issuer_manager", [account]);
+    }
+
+    async revokeIssuerManager(account: string) {
+        return this.executeAdminCall("revoke_issuer_manager", [account]);
+    }
+
+    async grantAdmin(account: string) {
+        return this.executeAdminCall("grant_admin", [account]);
+    }
+
+    async revokeAdmin(account: string) {
+        return this.executeAdminCall("revoke_admin", [account]);
     }
 
     /**
-     * Adds a membership root (Admin only)
+     * Administrative: Protocol State
      */
-    async addMembershipRoot(root: bigint | string) {
-        if (!this.account) throw new Error('Account required');
-        return await this.contract.add_membership_root(root);
+    async pause() {
+        return this.executeAdminCall("pause", []);
+    }
+
+    async unpause() {
+        return this.executeAdminCall("unpause", []);
+    }
+
+    async updateVerifier(newVerifier?: string) {
+        const verifierToUse = newVerifier || this.configuredVerifierAddress;
+        if (!verifierToUse) {
+            throw new Error('Verifier address is required to call update_verifier');
+        }
+
+        return this.executeAdminCall("update_verifier", [verifierToUse]);
+    }
+
+    async revokeCredential(user: string) {
+        return this.executeAdminCall("revoke_credential", [user]);
+    }
+
+    /**
+     * Helper to execute administrative calls using the admin account
+     */
+    private async executeAdminCall(method: string, args: any[]) {
+        if (!this.adminAccount) {
+            throw new Error(`Admin account is required to call ${method}`);
+        }
+        const call = this.contract.populate(method, args);
+        return await this.adminAccount.execute(call);
     }
 
     /**
@@ -118,4 +151,29 @@ export class NoahRegistry {
             return false;
         }
     }
+
+    /**
+     * Gets the owner of a nullifier
+     */
+    async getNullifierOwner(nullifier: bigint | string): Promise<string> {
+        return await this.readContract.get_nullifier_owner(nullifier);
+    }
+
+    async getVerifier(): Promise<string> {
+        return await this.readContract.get_verifier();
+    }
+
+    async isPaused(): Promise<boolean> {
+        const result = await this.readContract.is_paused();
+        return Boolean(result);
+    }
+}
+
+function toU32(value: string | bigint | number): number {
+    const normalized = Number(BigInt(value));
+    if (!Number.isInteger(normalized) || normalized < 0 || normalized > 0xffffffff) {
+        throw new Error(`Invalid u32 value: ${value}`);
+    }
+
+    return normalized;
 }

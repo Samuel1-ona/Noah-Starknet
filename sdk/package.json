@@ -22,6 +22,7 @@
         "@noble/curves": "^2.0.1",
         "@noir-lang/noir_js": "1.0.0-beta.16",
         "@noir-lang/types": "1.0.0-beta.16",
+        "dotenv": "^17.4.1",
         "ethers": "^6.16.0",
         "eventemitter3": "^5.0.4",
         "garaga": "^1.0.1",
