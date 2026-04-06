@@ -4,4 +4,7 @@ target
 build
 .secrets
 accounts.json
-garaga-venv
+garaga-venvgaraga-venv-310
+.snfoundry_cache
+snfoundry.toml
+accounts_testnet.json

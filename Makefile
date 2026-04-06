@@ -17,7 +17,7 @@ install-devnet:
 	asdf install starknet-devnet 0.4.2
 
 install-garaga:
-	./garaga-venv/bin/pip install garaga==1.0.1
+	./garaga-venv/bin/pip install garaga==1.1.0
 
 install-app-deps:
 	cd app && bun install
@@ -52,6 +52,8 @@ declare-verifier:
 deploy-verifier:
 	# TODO: use class hash from the result of the `make declare-verifier` step
 	cd contracts && sncast deploy --salt 0x00 --class-hash 0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f
+
+
 
 artifacts:
 	cp ./circuit/target/circuit.json ./app/src/assets/circuit.json

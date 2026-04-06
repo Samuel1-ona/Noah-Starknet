@@ -54,6 +54,8 @@ pub mod ProtocolAccessControl {
             let registry_addr = self.credential_registry_address.read();
             let dispatcher = ICredentialRegistryDispatcher { contract_address: registry_addr };
 
+            assert(!dispatcher.is_paused(), 'Registry paused');
+
             // Ensure the user has completed global KYC
             let is_verified = dispatcher.is_address_verified(user);
             assert(is_verified, 'User failed global KYC');
@@ -81,7 +83,16 @@ pub mod ProtocolAccessControl {
         }
 
         fn check_access(self: @ContractState, protocol: ContractAddress, user: ContractAddress) -> bool {
-            self.has_access.read((protocol, user))
+            if !self.has_access.read((protocol, user)) {
+                return false;
+            }
+
+            let registry_addr = self.credential_registry_address.read();
+            let dispatcher = ICredentialRegistryDispatcher { contract_address: registry_addr };
+            if dispatcher.is_paused() {
+                return false;
+            }
+            dispatcher.is_address_verified(user)
         }
     }
 }
