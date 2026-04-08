@@ -173,6 +173,7 @@ const DEMO_MERKLE_PATH = Array.from({ length: 20 }, () => '0');
 const DEMO_IS_LEFT = Array.from({ length: 20 }, () => false);
 const SEPOLIA_RPC_URL =
   'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c';
+const SEPOLIA_CHAIN_ID_HEX = '0x534e5f5345504f4c4941';
 
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
@@ -382,7 +383,7 @@ function App() {
 
     const rpcProvider = new RpcProvider({
       nodeUrl: SEPOLIA_RPC_URL,
-      chainId: 'SN_SEPOLIA' as any
+      chainId: SEPOLIA_CHAIN_ID_HEX as any
     });
 
     const connectedAccount = await WalletAccount.connect(

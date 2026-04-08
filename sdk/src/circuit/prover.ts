@@ -153,14 +153,19 @@ export class NoahProver {
         console.log('[Noah] Garaga Raw CallData Length:', callData.length);
         console.log('[Noah] Garaga Raw First 2:', callData.slice(0, 2).map(x => x.toString()));
 
-        // We've removed the manual shift(). 
-        // Starknet.js automatically adds a length prefix when passing an array 
-        // to a function expecting a Span. We rely on the library to handle 
-        // serialization consistently with the ABI.
+        const normalizedCallData = NoahProver.normalizeGaragaCallData(callData);
 
         // We convert to string[] for Starknet.js
-        return callData.map(x => x.toString());
+        return normalizedCallData.map(x => x.toString());
 
+    }
+
+    static normalizeGaragaCallData(callData: bigint[]): bigint[] {
+        if (callData.length > 0 && callData[0] === BigInt(callData.length - 1)) {
+            return callData.slice(1);
+        }
+
+        return callData;
     }
 
     static extractVerificationPublicInputs(publicInputs: Array<string | number | bigint>): NoahVerificationPublicInputs {

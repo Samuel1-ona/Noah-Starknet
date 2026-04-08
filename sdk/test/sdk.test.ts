@@ -42,6 +42,26 @@ describe('Noah SDK Initialization', () => {
         expect(manager.registry).toBeDefined();
     });
 
+    it('accepts quoted env vars for sponsored signer config', () => {
+        const previousAdminAddress = process.env.ADMIN_CONTRACT_ADDRESS;
+        const previousAdminKey = process.env.ADMIN_PRIVATE_KEY;
+
+        process.env.ADMIN_CONTRACT_ADDRESS = '"0x123"';
+        process.env.ADMIN_PRIVATE_KEY = '"0x456"';
+
+        try {
+            const manager = new NoahContractManager({
+                providerUrl: 'http://localhost:5050',
+                registryAddress: '0x123',
+            });
+
+            expect(manager.adminAccount).toBeDefined();
+        } finally {
+            process.env.ADMIN_CONTRACT_ADDRESS = previousAdminAddress;
+            process.env.ADMIN_PRIVATE_KEY = previousAdminKey;
+        }
+    });
+
     it('compacts the shipped 3680-byte VK into Garaga layout', () => {
         const vk = new Uint8Array(readFileSync(new URL('../assets/vk.bin', import.meta.url)));
         const { vk: sanitizedVk, logN } = (NoahProver as any).sanitizeVk(vk);
@@ -55,5 +75,11 @@ describe('Noah SDK Initialization', () => {
         expect(Buffer.from(sanitizedVk.slice(128, 160)).toString('hex')).toBe(
             '03655de9fc05554158bb675855c323c5a697daf2567ddee0f0383b166036d23f'
         );
+    });
+
+    it('strips Garaga leading length before Starknet span encoding', () => {
+        const normalized = NoahProver.normalizeGaragaCallData([3n, 10n, 20n, 30n]);
+        expect(normalized).toEqual([10n, 20n, 30n]);
+        expect(NoahProver.normalizeGaragaCallData([10n, 20n, 30n])).toEqual([10n, 20n, 30n]);
     });
 });

@@ -1,4 +1,4 @@
-import { Account, RpcProvider, AccountInterface } from 'starknet';
+import { Account, RpcProvider, AccountInterface, Signer } from 'starknet';
 import { NoahRegistry } from './registry.js';
 import registryAbi from '../../assets/abis/CredentialRegistry.json' with { type: 'json' };
 import { NETWORKS, NoahNetwork, DEFAULT_NETWORK } from '../constants.js';
@@ -74,6 +74,7 @@ export class NoahContractManager {
 
         if (adminAddr && adminKey) {
             this.adminAccount = this.createAccount(adminAddr, adminKey);
+            console.log(`[Noah] Admin Account (Sponsored) initialized: ${adminAddr}`);
         }
 
         const abi = (registryAbi as any).abi || (registryAbi as any);
@@ -89,10 +90,17 @@ export class NoahContractManager {
     }
 
     private createAccount(address: string, privateKey: string): Account {
+        const normalizedAddress = normalizeEnvValue(address);
+        const normalizedPrivateKey = normalizeEnvValue(privateKey);
+
+        if (!normalizedAddress || !normalizedPrivateKey) {
+            throw new Error('Account address and private key are required to create a Starknet signer');
+        }
+
         const account = new Account({
             provider: this.provider,
-            address,
-            signer: privateKey
+            address: normalizedAddress,
+            signer: new Signer(normalizedPrivateKey)
         });
 
         const originalGetNonce = account.getNonce.bind(account);
@@ -105,12 +113,44 @@ export class NoahContractManager {
 }
 
 function getEnvVar(key: string): string | undefined {
-    if (typeof process === 'undefined' || !process.env) {
+    // 1. Check direct process.env (Node or Vite defined)
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+        const val = normalizeEnvValue(process.env[key]);
+        if (val && val !== 'undefined' && val !== 'null') return val;
+    }
+
+    // 2. Check for VITE_ prefix (standard for Vite apps)
+    const viteKey = `VITE_${key}`;
+    // @ts-ignore
+    const metaEnv = typeof import.meta !== 'undefined' && import.meta.env;
+    if (metaEnv && metaEnv[viteKey]) {
+        return normalizeEnvValue(metaEnv[viteKey]);
+    }
+    if (typeof process !== 'undefined' && process.env && process.env[viteKey]) {
+        return normalizeEnvValue(process.env[viteKey]);
+    }
+
+    return undefined;
+}
+
+function normalizeEnvValue(value: unknown): string | undefined {
+    if (value == null) {
         return undefined;
     }
 
-    const value = process.env[key];
-    return value && value.length > 0 ? value : undefined;
+    const trimmed = String(value).trim();
+    if (!trimmed) {
+        return undefined;
+    }
+
+    if (
+        (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    ) {
+        return trimmed.slice(1, -1).trim();
+    }
+
+    return trimmed;
 }
 
 function getRpcEnvKey(network: NoahNetwork): string {

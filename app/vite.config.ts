@@ -3,18 +3,27 @@ import react from '@vitejs/plugin-react'
 import serveStatic from 'vite-plugin-serve-static'
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import dotenv from 'dotenv';
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
+// Load environment variables from the parent sdk directory
+dotenv.config({ path: path.resolve(__dirname, '../sdk/.env') });
 
 // https://vite.dev/config/
 export default defineConfig({
   define: {
     global: "globalThis",
-    "process.env": "{}",
+    "process.env": {
+      ADMIN_PRIVATE_KEY: JSON.stringify(process.env.ADMIN_PRIVATE_KEY),
+      ADMIN_CONTRACT_ADDRESS: JSON.stringify(process.env.ADMIN_CONTRACT_ADDRESS),
+      REGISTRY_ADDRESS: JSON.stringify(process.env.REGISTRY_ADDRESS),
+      VERIFIER_ADDRESS: JSON.stringify(process.env.VERIFIER_ADDRESS),
+      SEPOLIA_RPC: JSON.stringify(process.env.SEPOLIA_RPC),
+    },
   },
   plugins: [
     react(),
