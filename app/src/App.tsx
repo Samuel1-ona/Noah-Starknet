@@ -2,11 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { ProofState, ProofStateData } from './types';
 import {
+  BrowserStorage,
+  NoahBlindedDataManager,
   NoahProofOrchestrator,
   NoahDataProvider,
   NoahEvent,
-  NoahProverInputs,
+  NoahScanError,
+  type NoahMRZDocument,
+  type NoahJob,
+  type NoahProverInputs,
 } from 'noah-starknet';
+import { RpcProvider, WalletAccount, type AccountInterface } from 'starknet';
+import type { StarknetWindowObject } from '@starknet-io/get-starknet';
 
 import circuitArtifact from "./assets/circuit.json";
 import vkUrl from './assets/vk.bin?url';
@@ -42,7 +49,8 @@ import {
   Chip,
   Paper,
   keyframes,
-  Grid
+  Grid,
+  TextField
 } from '@mui/material';
 import { Zap } from 'lucide-react';
 import {
@@ -158,71 +166,32 @@ const premiumTheme = createTheme({
   },
 });
 
+const SAMPLE_TD3_MRZ =
+  'P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<L898902C36UTO7408122F1204159ZE184226B<<<<<10';
+
+const DEMO_MERKLE_PATH = Array.from({ length: 20 }, () => '0');
+const DEMO_IS_LEFT = Array.from({ length: 20 }, () => false);
+const SEPOLIA_RPC_URL =
+  'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_10/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c';
+
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
     state: ProofState.Initial
   });
   const [passportImage, setPassportImage] = useState<string | null>(null);
+  const [mrzDocument, setMrzDocument] = useState<NoahMRZDocument | null>(null);
   const [mrzExtracted, setMrzExtracted] = useState<string | null>(null);
+  const [manualMrz, setManualMrz] = useState<string>('');
+  const [preparedInputs, setPreparedInputs] = useState<NoahProverInputs | null>(null);
+  const [lastJob, setLastJob] = useState<NoahJob | null>(null);
+  const [inputSource, setInputSource] = useState<'image' | 'manual' | null>(null);
   const [orchestrator, setOrchestrator] = useState<NoahProofOrchestrator | null>(null);
-  const [account, setAccount] = useState<any>(null); // Starknet account
+  const [account, setAccount] = useState<AccountInterface | null>(null);
   const [isAlreadyVerified, setIsAlreadyVerified] = useState<boolean>(false); // Prevent re-KYC
   const [pitchVisible, setPitchVisible] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
-  const initializingRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    // ... (existing check)
-    initializingRef.current = true;
-
-    const initApp = async () => {
-      try {
-        updateState(ProofState.Initial);
-
-        const vkResponse = await fetch(vkUrl);
-        const vkBuffer = await vkResponse.arrayBuffer();
-        const vk = new Uint8Array(vkBuffer);
-
-        const config = {
-          circuitArtifact: circuitArtifact as any,
-          vk: vk,
-          starknet: {
-            network: 'sepolia' as const,
-          }
-        };
-
-        const orch = await NoahProofOrchestrator.new(config);
-
-        orch.on(NoahEvent.PROOF_GENERATION_START, () => updateState(ProofState.GeneratingProof));
-        orch.on(NoahEvent.TRANSACTION_SUBMISSION_START, () => updateState(ProofState.SendingTransaction));
-        orch.on(NoahEvent.TRANSACTION_SUBMISSION_SUCCESS, () => {
-          updateState(ProofState.ProofVerified);
-        });
-        orch.on(NoahEvent.ERROR, (err: any) => handleError(err));
-
-        setOrchestrator(orch);
-      } catch (err) {
-        console.error('Failed to init Noah SDK:', err);
-      }
-    };
-    initApp();
-
-    return () => {
-      orchestrator?.destroy();
-    };
-  }, []);
-
-  const resetState = () => {
-    currentStateRef.current = ProofState.Initial;
-    setProofState({
-      state: ProofState.Initial,
-      error: undefined
-    });
-    setPassportImage(null);
-    setMrzExtracted(null);
-  };
 
   const handleError = (error: unknown) => {
     console.error('Error:', error);
@@ -238,11 +207,102 @@ function App() {
     });
   };
 
-
   const updateState = (newState: ProofState) => {
     currentStateRef.current = newState;
     setProofState({ state: newState, error: undefined });
   };
+
+  const loadVk = async (): Promise<Uint8Array> => {
+    const vkResponse = await fetch(vkUrl);
+    const vkBuffer = await vkResponse.arrayBuffer();
+    return new Uint8Array(vkBuffer);
+  };
+
+  const attachOrchestratorListeners = (orch: NoahProofOrchestrator) => {
+    orch.on(NoahEvent.PROOF_GENERATION_START, () => updateState(ProofState.GeneratingProof));
+    orch.on(NoahEvent.TRANSACTION_SUBMISSION_START, () => updateState(ProofState.SendingTransaction));
+    orch.on(NoahEvent.TRANSACTION_SUBMISSION_SUCCESS, () => {
+      updateState(ProofState.ProofVerified);
+    });
+    orch.on(NoahEvent.JOB_UPDATED, (job: NoahJob) => {
+      setLastJob(job);
+    });
+    orch.on(NoahEvent.ERROR, (err: unknown) => handleError(err));
+  };
+
+  const getUserSecret = async () => {
+    if (orchestrator) {
+      return orchestrator.blindedData.getOrCreateSecret();
+    }
+
+    const blindedData = new NoahBlindedDataManager(new BrowserStorage());
+    return blindedData.getOrCreateSecret();
+  };
+
+  const prepareInputsForDocument = async (
+    provider: NoahDataProvider,
+    document: NoahMRZDocument,
+    targetUser?: string
+  ) => {
+    const userSecret = await getUserSecret();
+
+    return provider.prepareFromNFC(
+      { mrz: document.mrz, docType: document.docType },
+      {
+        merklePath: DEMO_MERKLE_PATH,
+        isLeft: DEMO_IS_LEFT,
+        userSecret,
+        userAddress: targetUser,
+      }
+    );
+  };
+
+  const resetState = () => {
+    currentStateRef.current = ProofState.Initial;
+    setProofState({
+      state: ProofState.Initial,
+      error: undefined
+    });
+    setPassportImage(null);
+    setMrzDocument(null);
+    setMrzExtracted(null);
+    setManualMrz('');
+    setPreparedInputs(null);
+    setLastJob(null);
+    setInputSource(null);
+  };
+
+  useEffect(() => {
+    let activeOrchestrator: NoahProofOrchestrator | null = null;
+
+    const initApp = async () => {
+      try {
+        updateState(ProofState.Initial);
+
+        const orch = await NoahProofOrchestrator.new({
+          circuitArtifact: circuitArtifact as any,
+          vk: await loadVk(),
+          starknet: {
+            network: 'sepolia' as const,
+          }
+        });
+
+        attachOrchestratorListeners(orch);
+        activeOrchestrator = orch;
+        setOrchestrator(orch);
+      } catch (err) {
+        console.error('Failed to init Noah SDK:', err);
+      }
+    };
+
+    void initApp();
+
+    return () => {
+      if (activeOrchestrator) {
+        void activeOrchestrator.destroy();
+      }
+    };
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -251,84 +311,153 @@ function App() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
-      setPassportImage(base64);
+      const provider = new NoahDataProvider();
 
       try {
         updateState(ProofState.GeneratingWitness);
-        const provider = new NoahDataProvider();
-        const mrz = await provider.scanner.scanImage(base64);
-        setMrzExtracted(mrz);
+        const document = await provider.scanner.scanDocument(base64);
+        const inputs = await prepareInputsForDocument(provider, document, account?.address);
+
+        setPassportImage(base64);
+        setMrzDocument(document);
+        setMrzExtracted(document.mrz);
+        setManualMrz(document.mrz);
+        setPreparedInputs(inputs);
+        setInputSource('image');
         updateState(ProofState.Initial);
       } catch (error) {
-        handleError(error);
-        setPassportImage(null); // Reset on error
+        if (error instanceof NoahScanError && (error as any).rawText) {
+          setPassportImage(base64);
+          setManualMrz((error as any).rawText);
+          setInputSource('manual');
+          setProofState({
+            state: ProofState.Initial,
+            error: `OCR detected some characters but validation failed: ${
+              (error as any).message
+            }. Please verify and correct the MRZ below.`
+          });
+        } else {
+          handleError(error);
+          setPassportImage(null); // Reset on error
+        }
+      } finally {
+        await provider.destroy();
       }
     };
     reader.readAsDataURL(file);
   };
 
-  async function sha256(message: Uint8Array): Promise<Uint8Array> {
-    const msgCopy = new Uint8Array(message.length);
-    msgCopy.set(message);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgCopy);
-    return new Uint8Array(hashBuffer);
-  }
+  const handleManualMrz = async (value: string = manualMrz) => {
+    const provider = new NoahDataProvider();
+
+    try {
+      updateState(ProofState.GeneratingWitness);
+      const document = provider.scanner.parseMRZ(value);
+      const inputs = await prepareInputsForDocument(provider, document, account?.address);
+
+      setPassportImage(null);
+      setMrzDocument(document);
+      setMrzExtracted(document.mrz);
+      setManualMrz(document.mrz);
+      setPreparedInputs(inputs);
+      setInputSource('manual');
+      updateState(ProofState.Initial);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      await provider.destroy();
+    }
+  };
+
+  const handleLoadSampleMrz = () => {
+    setManualMrz(SAMPLE_TD3_MRZ);
+    void handleManualMrz(SAMPLE_TD3_MRZ);
+  };
+
+  const connectWalletAccount = async (wallet: StarknetWindowObject): Promise<AccountInterface> => {
+    const legacyAccount = (wallet as any).account;
+    if (legacyAccount?.address) {
+      return legacyAccount as AccountInterface;
+    }
+
+    const rpcProvider = new RpcProvider({
+      nodeUrl: SEPOLIA_RPC_URL,
+      chainId: 'SN_SEPOLIA' as any
+    });
+
+    const connectedAccount = await WalletAccount.connect(
+      rpcProvider,
+      wallet as any,
+      undefined,
+      undefined,
+      true
+    );
+
+    if (!connectedAccount?.address) {
+      throw new Error('Wallet connected, but no Starknet account address was returned.');
+    }
+
+    return connectedAccount;
+  };
 
   const handleConnectWallet = async () => {
     try {
-      const globalWindow = window as any;
-      const argent = globalWindow.starknet_argentX;
-      const braavos = globalWindow.starknet_braavos;
-      const generic = globalWindow.starknet;
-      const wallet = argent || braavos || generic;
+      const { connect } = await import('@starknet-io/get-starknet');
+      const wallet = await connect({
+        modalMode: 'alwaysAsk',
+        modalTheme: 'dark'
+      });
 
       if (!wallet) {
-        alert("Starknet wallet not detected.");
         return;
       }
 
-      await wallet.enable({ starknetVersion: 'v5' });
+      const connectedAccount = await connectWalletAccount(wallet);
 
-      if (wallet.isConnected) {
-        setAccount(wallet.account);
-        await initOrchestrator(wallet.account);
-      }
+      setAccount(connectedAccount);
+      console.log(`[Noah] Connected Account: ${connectedAccount.address}`);
+      await initOrchestrator(connectedAccount);
     } catch (err) {
       console.error('[Noah] Failed to connect wallet:', err);
       handleError(err);
     }
   };
 
-  const initOrchestrator = async (connectedAccount?: any) => {
+  const handleDisconnectWallet = async () => {
+    try {
+      const { disconnect } = await import('@starknet-io/get-starknet');
+      await disconnect({ clearLastWallet: true });
+    } catch (err) {
+      console.warn('[Noah] Failed to fully disconnect wallet:', err);
+    } finally {
+      setAccount(null);
+      await initOrchestrator();
+    }
+  };
+
+  const initOrchestrator = async (connectedAccount?: AccountInterface) => {
     setIsAlreadyVerified(false);
     try {
       if (orchestrator) {
-        orchestrator.destroy();
+        await orchestrator.destroy();
       }
 
-      const vkResponse = await fetch(vkUrl);
-      const vkBuffer = await vkResponse.arrayBuffer();
-      const vk = new Uint8Array(vkBuffer);
-
-      const config = {
+      const orch = await NoahProofOrchestrator.new({
         circuitArtifact: circuitArtifact as any,
-        vk: vk,
+        vk: await loadVk(),
         starknet: {
           network: 'sepolia' as const,
           account: connectedAccount,
         }
-      };
-
-      const orch = await NoahProofOrchestrator.new(config);
-
-      orch.on(NoahEvent.PROOF_GENERATION_START, () => updateState(ProofState.GeneratingProof));
-      orch.on(NoahEvent.TRANSACTION_SUBMISSION_START, () => updateState(ProofState.SendingTransaction));
-      orch.on(NoahEvent.TRANSACTION_SUBMISSION_SUCCESS, () => {
-        updateState(ProofState.ProofVerified);
       });
-      orch.on(NoahEvent.ERROR, (err: any) => handleError(err));
+
+      attachOrchestratorListeners(orch);
 
       setOrchestrator(orch);
+      setPreparedInputs((currentInputs) => currentInputs ? ({
+        ...currentInputs,
+        user_address: connectedAccount?.address
+      }) : currentInputs);
 
       if (connectedAccount) {
         try {
@@ -347,40 +476,17 @@ function App() {
   };
 
   const startProcess = async () => {
-    if (!orchestrator || !mrzExtracted) return;
+    if (!orchestrator || !preparedInputs) return;
 
     try {
-      let mrzBytes = Array.from(new TextEncoder().encode(mrzExtracted)).map(x => Number(x));
-      if (mrzBytes.length < 88) {
-        mrzBytes = [...mrzBytes, ...Array(88 - mrzBytes.length).fill(32)];
-      } else if (mrzBytes.length > 88) {
-        mrzBytes = mrzBytes.slice(0, 88);
+      if (!account) {
+        throw new Error('Connect a Starknet wallet before submitting the proof.');
       }
 
-      const mrzHash = await sha256(new Uint8Array(mrzBytes));
-
-      const inputs: NoahProverInputs = {
-        mrz: mrzBytes,
-        pub_key_x: Array(32).fill(0),
-        pub_key_y: Array(32).fill(0),
-        signature: Array(64).fill(0),
-        hashed_mrz: Array.from(mrzHash),
-        jurisdiction_root: "0x00",
-        jurisdiction_index: "0",
-        jurisdiction_hash_path: ["0x00", "0x00"],
-        membership_root: "0x00",
-        membership_index: "0",
-        membership_hash_path: ["0x00", "0x00"],
-        action_id: "12345",
-        nullifier: Math.floor(Math.random() * 1000000000).toString(),
-        current_year: "2024",
-        current_month: "5",
-        current_day: "20",
-        min_age: "18",
-        user_secret: "0"
-      };
-
-      await orchestrator.proveAndVerify(inputs);
+      await orchestrator.proveAndVerify({
+        ...preparedInputs,
+        user_address: account.address
+      });
     } catch (error: any) {
       handleError(error);
     }
@@ -504,7 +610,7 @@ function App() {
                       </Typography>
                     }
                     variant="outlined"
-                    onDelete={() => { setAccount(null); initOrchestrator(); }}
+                    onDelete={() => { void handleDisconnectWallet(); }}
                     sx={{
                       borderColor: 'rgba(255,255,255,0.2)',
                       background: 'rgba(255,255,255,0.05)',
@@ -635,10 +741,9 @@ function App() {
                           <Typography variant="h5" gutterBottom fontWeight="600">
                             Upload Passport Photo
                           </Typography>
-                          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400, mx: 'auto' }}>
-                            Drag & drop or click to scan the MRZ code. Your data is processed locally and never leaves your browser.
+                          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 460, mx: 'auto' }}>
+                            Scan a real document photo or skip OCR and paste a normalized MRZ below. The app now uses the SDK to derive the circuit inputs locally before any on-chain step.
                           </Typography>
-
                         </Paper>
                       ) : (
                         <Box sx={{ mb: 4, position: 'relative' }}>
@@ -683,17 +788,109 @@ function App() {
                         </Box>
                       )}
 
+                      <Box sx={{
+                        mt: 4,
+                        p: 3,
+                        borderRadius: 4,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        textAlign: 'left'
+                      }}>
+                        <Typography variant="h6" fontWeight="600" gutterBottom>
+                          Quick SDK Test
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Paste a TD3, TD1, or TD2 MRZ to exercise the SDK without relying on OCR. The sample button loads the same passport string used in the SDK tests.
+                        </Typography>
+                        <TextField
+                          value={manualMrz}
+                          onChange={(event) => setManualMrz(event.target.value.toUpperCase())}
+                          placeholder={SAMPLE_TD3_MRZ}
+                          multiline
+                          rows={4}
+                          fullWidth
+                          variant="outlined"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              fontFamily: '"IBM Plex Mono", "SFMono-Regular", monospace',
+                              background: 'rgba(0,0,0,0.2)'
+                            }
+                          }}
+                        />
+                        <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <Button
+                            variant="outlined"
+                            onClick={() => void handleManualMrz()}
+                            disabled={!manualMrz.trim()}
+                          >
+                            Use Pasted MRZ
+                          </Button>
+                          <Button variant="text" onClick={handleLoadSampleMrz}>
+                            Load Sample MRZ
+                          </Button>
+                        </Box>
+                      </Box>
+
+                      {mrzDocument && preparedInputs && (
+                        <Box sx={{ mt: 4, textAlign: 'left' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                            <Typography variant="h6" fontWeight="600">
+                              SDK Inputs Ready
+                            </Typography>
+                            <Chip
+                              label={inputSource === 'image' ? 'Photo Scan' : 'Manual MRZ'}
+                              color="primary"
+                              variant="outlined"
+                            />
+                          </Box>
+                          <Grid container spacing={2}>
+                            {[
+                              { title: 'Document Format', value: mrzDocument.format },
+                              { title: 'Birth Year', value: preparedInputs.birth_year.toString() },
+                              { title: 'Expiry Date', value: preparedInputs.expiry_date.toString() },
+                              { title: 'Merkle Root', value: `${String(preparedInputs.passport_root).slice(0, 10)}...${String(preparedInputs.passport_root).slice(-8)}` },
+                            ].map((item) => (
+                              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.title}>
+                                <Box sx={{ p: 2, borderRadius: 3, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                  <Typography variant="caption" sx={{ textTransform: 'uppercase', opacity: 0.6, display: 'block', mb: 0.5 }}>
+                                    {item.title}
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                    {item.value}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            ))}
+                          </Grid>
+
+                          <Paper sx={{ mt: 2, p: 2.5, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Typography variant="caption" sx={{ textTransform: 'uppercase', opacity: 0.6, display: 'block', mb: 1 }}>
+                              Normalized MRZ
+                            </Typography>
+                            <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: '"IBM Plex Mono", "SFMono-Regular", monospace', fontSize: '0.85rem' }}>
+                              {mrzExtracted}
+                            </Box>
+                          </Paper>
+                        </Box>
+                      )}
+
+                      {preparedInputs && !account && proofState.state === ProofState.Initial && (
+                        <Alert severity="info" sx={{ mt: 4, borderRadius: 3, textAlign: 'left' }}>
+                          Local SDK inputs are ready. Connect a Starknet wallet to submit the proof on Sepolia.
+                        </Alert>
+                      )}
+
                       {/* Processing Indicator */}
                       {(proofState.state !== ProofState.Initial && proofState.state !== ProofState.ProofVerified) && (
                         <Box sx={{ my: 6, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <CircularProgress size={60} thickness={4} sx={{ mb: 3 }} />
                           <Typography variant="h6" fontWeight="600">
-                            {proofState.state === ProofState.GeneratingWitness && "Processing Biometric Data..."}
+                            {proofState.state === ProofState.GeneratingWitness && "Preparing SDK Inputs..."}
                             {proofState.state === ProofState.GeneratingProof && "Generating Zero-Knowledge Proof..."}
                             {proofState.state === ProofState.SendingTransaction && "Verifying on Starknet..."}
                           </Typography>
                           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            This calculates a cryptographic proof that you are over 18 without revealing your DOB.
+                            This calculates the Noir-compatible public inputs locally, then generates a zero-knowledge proof without revealing the raw passport data.
                           </Typography>
                         </Box>
                       )}
@@ -707,6 +904,11 @@ function App() {
                           <Typography variant="body2" color="text.secondary">
                             You have successfully proved your identity.
                           </Typography>
+                          {lastJob?.transactionHash && (
+                            <Typography variant="body2" sx={{ mt: 1.5, fontFamily: '"IBM Plex Mono", "SFMono-Regular", monospace' }}>
+                              Tx: {lastJob.transactionHash}
+                            </Typography>
+                          )}
                         </Box>
                       )}
 
@@ -717,13 +919,13 @@ function App() {
                             variant="contained"
                             size="large"
                             onClick={startProcess}
-                            disabled={!mrzExtracted}
+                            disabled={!preparedInputs || !account}
                             sx={{
                               px: 6, py: 1.5, fontSize: '1.1rem',
-                              background: !mrzExtracted ? 'rgba(255,255,255,0.1)' : undefined
+                              background: (!preparedInputs || !account) ? 'rgba(255,255,255,0.1)' : undefined
                             }}
                           >
-                            Verify Identity
+                            {account ? 'Verify Identity' : 'Connect Wallet to Verify'}
                           </Button>
                         )}
 

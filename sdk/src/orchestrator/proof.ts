@@ -100,6 +100,9 @@ export class NoahProofOrchestrator extends EventEmitter {
                 targetUser
             );
 
+            console.log('[Noah] Transaction Calldata Length:', calldata.length);
+            console.log('[Noah] Public Inputs:', publicInputs);
+
             job.status = JobStatus.COMPLETED;
             job.transactionHash = tx.transaction_hash;
             job.publicInputs = proof.publicInputs;

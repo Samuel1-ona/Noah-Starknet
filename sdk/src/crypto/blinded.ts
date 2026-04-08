@@ -1,5 +1,10 @@
 import { NoahStorage } from '../storage/base.js';
-import { num } from 'starknet';
+
+/**
+ * BN254 Prime Modulus used by Noir/Barretenberg.
+ * Values passed as "Field" to the circuit MUST be less than this constant.
+ */
+export const BN254_MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
 /**
  * Manages the user secret (salt) for nullifier privacy.
@@ -11,15 +16,22 @@ export class NoahBlindedDataManager {
     constructor(private storage: NoahStorage) { }
 
     /**
-     * Gets or generates a stable user secret
+     * Gets or generates a stable user secret.
+     * Automatically reduces existing secrets if they exceed the field modulus.
      */
     async getOrCreateSecret(): Promise<bigint> {
         const existing = await this.storage.getItem(this.SECRET_KEY);
         if (existing) {
-            return BigInt(existing);
+            let secret = BigInt(existing);
+            // Ensure the secret is field-safe
+            if (secret >= BN254_MODULUS) {
+                secret = secret % BN254_MODULUS;
+                await this.storage.setItem(this.SECRET_KEY, secret.toString());
+            }
+            return secret;
         }
 
-        // Generate a new 256-bit secret
+        // Generate a new field-safe secret
         const secret = this.generateRandomSecret();
         await this.storage.setItem(this.SECRET_KEY, secret.toString());
         return secret;
@@ -35,6 +47,8 @@ export class NoahBlindedDataManager {
     private generateRandomSecret(): bigint {
         const entropy = crypto.getRandomValues(new Uint8Array(32));
         const hex = Array.from(entropy).map(b => b.toString(16).padStart(2, '0')).join('');
-        return BigInt('0x' + hex);
+        const raw = BigInt('0x' + hex);
+        // Reduce modulo BN254 prime to ensure it fits in a Noir Field
+        return raw % BN254_MODULUS;
     }
 }

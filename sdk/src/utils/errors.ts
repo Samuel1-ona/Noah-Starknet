@@ -6,7 +6,7 @@ export class NoahError extends Error {
 }
 
 export class NoahScanError extends NoahError {
-    constructor(message: string) {
+    constructor(message: string, public readonly rawText?: string) {
         super(message, 'SCAN_ERROR');
         this.name = 'NoahScanError';
     }

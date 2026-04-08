@@ -68,31 +68,57 @@ mod ExclusiveAirdrop {
 
             <Divider sx={{ my: 6, borderColor: 'rgba(255,255,255,0.1)' }} />
 
-            <Typography variant="h4" fontWeight="bold" gutterBottom color="secondary.main">
-                Backend / API Integration (NodeJS)
+            <Typography variant="h4" fontWeight="bold" gutterBottom color="secondary.main" sx={{ mt: 6 }}>
+                Frontend Wallet / Account Plug-ins
             </Typography>
             <Typography variant="body1" paragraph>
-                While the browser handles generating proofs to protect user privacy, your backend Node.js server can also verify proofs programmatically before issuing JWTs or granting access to a web application.
+                Noah is strictly agnostic to how you connect your users. You can plug in standard wallets, session-key controllers (Cartridge), or embedded wallets (Privy).
+            </Typography>
+
+            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 4 }}>
+                1. Cartridge Controller (Session Keys)
+            </Typography>
+            <Typography variant="body1" paragraph>
+                By passing the Cartridge <code>Controller</code> account as the `account` in the SDK, you can enable a session-based identity flow where the user only clicks "Verify" once.
             </Typography>
 
             <CodeBlock
                 language="typescript"
-                title="server.ts"
-                code={`import { NoahProofOrchestrator } from 'noah-starknet';
+                title="cartridge_integration.ts"
+                code={`import Controller from '@cartridge/controller';
+import { NoahProofOrchestrator } from 'noah-starknet';
 
-app.post('/login', async (req, res) => {
-    const { userAddress } = req.body;
-    
-    // SDK can run server-side to check Starknet state
-    const orchestrator = await NoahProofOrchestrator.new(serverConfig);
-    const isValidHuman = await orchestrator.isAddressVerified(userAddress);
-    
-    if (isValidHuman) {
-        const token = generateJwt(userAddress);
-        return res.json({ token });
-    } else {
-        return res.status(403).json({ error: "Please verify your ID with Noah first." });
-    }
+const controller = new Controller();
+const { account } = await controller.connect();
+
+// The Noah SDK treats the Controller exactly like a standard Argent/Braavos wallet
+const orchestrator = await NoahProofOrchestrator.new({
+    circuitArtifact,
+    vk,
+    starknet: { network: 'sepolia', account: account }
+});`}
+            />
+
+            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 6 }}>
+                2. Privy (Embedded Wallets)
+            </Typography>
+            <Typography variant="body1" paragraph>
+                For non-crypto native users, you can use Privy to generate an embedded Starknet wallet and pass its signer to the Noah SDK.
+            </Typography>
+
+            <CodeBlock
+                language="typescript"
+                title="privy_integration.ts"
+                code={`import { usePrivy, useWallets } from '@privy-io/react-auth';
+const { wallets } = useWallets();
+
+// Find the Starknet wallet and convert to AccountInterface
+const starknetAccount = convertPrivyToStarknet(wallets[0]); 
+
+const orchestrator = await NoahProofOrchestrator.new({
+    circuitArtifact,
+    vk,
+    starknet: { network: 'sepolia', account: starknetAccount }
 });`}
             />
 

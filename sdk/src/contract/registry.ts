@@ -4,7 +4,6 @@ import { NoahVerificationPublicInputs } from '../circuit/prover.js';
 export class NoahRegistry {
     private contract: Contract;
     private readContract: Contract;
-    private provider: RpcProvider;
     private account?: AccountInterface;
     private adminAccount?: AccountInterface;
     private configuredVerifierAddress?: string;
@@ -33,7 +32,6 @@ export class NoahRegistry {
             providerOrAccount: provider
         });
 
-        this.provider = provider;
         this.account = account;
         this.adminAccount = adminAccount;
         this.configuredVerifierAddress = configuredVerifierAddress;
@@ -69,10 +67,10 @@ export class NoahRegistry {
             const call = this.contract.populate("verify_credential", [
                 userToVerify,
                 proof,
-                BigInt(publicInputs.passportRoot),
-                BigInt(publicInputs.nullifier),
-                BigInt(publicInputs.nameHash),
-                BigInt(publicInputs.docNumHash),
+                toU256(publicInputs.passportRoot),
+                toU256(publicInputs.nullifier),
+                toU256(publicInputs.nameHash),
+                toU256(publicInputs.docNumHash),
                 toU32(publicInputs.birthYear),
                 toU32(publicInputs.expiryDate)
             ]);
@@ -176,4 +174,14 @@ function toU32(value: string | bigint | number): number {
     }
 
     return normalized;
+}
+
+function toU256(value: string | bigint | number): { low: string, high: string } {
+    const bn = BigInt(value);
+    const low = bn & ((1n << 128n) - 1n);
+    const high = bn >> 128n;
+    return {
+        low: `0x${low.toString(16)}`,
+        high: `0x${high.toString(16)}`
+    };
 }

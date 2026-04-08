@@ -4,6 +4,7 @@ import { NoahRegistry } from '../src/contract/registry';
 import { NoahContractManager } from '../src/contract/manager';
 import { NoahProofOrchestrator } from '../src/orchestrator/proof';
 import circuitArtifact from '../assets/circuit.json';
+import { readFileSync } from 'node:fs';
 
 describe('Noah SDK Initialization', () => {
     it('should initialize NoahProver', async () => {
@@ -39,5 +40,20 @@ describe('Noah SDK Initialization', () => {
         expect(manager).toBeDefined();
         expect(manager.provider).toBeDefined();
         expect(manager.registry).toBeDefined();
+    });
+
+    it('compacts the shipped 3680-byte VK into Garaga layout', () => {
+        const vk = new Uint8Array(readFileSync(new URL('../assets/vk.bin', import.meta.url)));
+        const { vk: sanitizedVk, logN } = (NoahProver as any).sanitizeVk(vk);
+
+        expect(logN).toBe(15);
+        expect(sanitizedVk).toHaveLength(1888);
+        expect(Buffer.from(sanitizedVk.slice(0, 96)).equals(Buffer.from(vk.slice(0, 96)))).toBe(true);
+        expect(Buffer.from(sanitizedVk.slice(96, 128)).toString('hex')).toBe(
+            '20c9b115530e94cd4f6e048baa5479fdbf55ce545761ca1b9fbb39d94cb9db10'
+        );
+        expect(Buffer.from(sanitizedVk.slice(128, 160)).toString('hex')).toBe(
+            '03655de9fc05554158bb675855c323c5a697daf2567ddee0f0383b166036d23f'
+        );
     });
 });

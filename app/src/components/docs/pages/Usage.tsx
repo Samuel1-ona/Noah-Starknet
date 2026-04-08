@@ -30,15 +30,18 @@ export const Usage: React.FC = () => {
 import circuitArtifact from "./assets/circuit.json";
 import vkUrl from './assets/vk.bin?url';
 
-// Fetch the verifier key (VK)
+// 1. Fetch the verifier key (VK)
 const vkResponse = await fetch(vkUrl);
 const vk = new Uint8Array(await vkResponse.arrayBuffer());
 
-// Initialize Orchestrator
+// 2. Initialize Orchestrator
 const orchestrator = await NoahProofOrchestrator.new({
   circuitArtifact: circuitArtifact,
   vk: vk,
-  starknet: { network: 'sepolia', account: connectedAccount }
+  starknet: { 
+    network: 'sepolia', 
+    account: connectedAccount // Standard Account OR Cartridge Controller
+  }
 });`}
             />
 
@@ -46,27 +49,24 @@ const orchestrator = await NoahProofOrchestrator.new({
                 Step 2: Generate the Proof
             </Typography>
             <Typography variant="body1" paragraph>
-                Once you have extracted the MRZ string from the passport (e.g., using a camera scanner), you pass the parsed biometric data into the Orchestrator. The SDK handles generating the massive cryptographic signature directly inside the browser.
+                Once you have extracted the MRZ string from the passport, you pass the parsed biometric data into the Orchestrator. The SDK handles generating the massive cryptographic signature directly inside the browser.
             </Typography>
 
             <CodeBlock
                 language="typescript"
                 title="generateProof.ts"
-                code={`const inputs = {
-  mrz: mrzBytesArray, // The scanned Passport string converted to bytes
-  pub_key_x: Array(32).fill(0), // Passport PubKey X
-  pub_key_y: Array(32).fill(0), // Passport PubKey Y
-  signature: Array(64).fill(0), // RSA Signature from Passport NFC
-  hashed_mrz: hashedMrzBytes,
-  
-  // What are we proving?
-  current_year: "2024",
-  current_month: "5",
-  current_day: "20",
-  min_age: "18", // Prove user is an adult
-  nullifier: Math.floor(Math.random() * 1000000000).toString(), // Sybil Resistance
-  user_secret: "12345"
-};
+                code={`import { NoahDataProvider } from 'noah-starknet';
+
+const provider = new NoahDataProvider();
+const document = provider.scanner.parseMRZ(mrzString);
+const userSecret = await orchestrator.blindedData.getOrCreateSecret();
+
+const inputs = await provider.prepareFromNFC(document, {
+  merklePath: Array(20).fill("0"),
+  isLeft: Array(20).fill(false),
+  userSecret,
+  userAddress: account.address
+});
 
 // ⏳ This takes a few seconds—it's running cryptography entirely offline!
 await orchestrator.proveAndVerify(inputs);`}

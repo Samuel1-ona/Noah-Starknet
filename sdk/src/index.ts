@@ -1,4 +1,5 @@
 export * from './circuit/prover.js';
+export * from './circuit/inputs.js';
 export * from './contract/registry.js';
 export * from './contract/manager.js';
 export * from './orchestrator/proof.js';
@@ -11,4 +12,3 @@ export * from './orchestrator/jobs.js';
 export * from './storage/base.js';
 export * from './storage/browser.js';
 export * from './crypto/blinded.js';
-

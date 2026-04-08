@@ -219,9 +219,17 @@ export class NoahMRZScanner {
                     ...NoahMRZScanner.normalizeDocument(text, options.preferredDocType),
                     rawText: text
                 };
-            } catch (error) {
+            } catch (error: any) {
                 lastError = error;
+                // If it's a validation error, we carry the raw text so the UI can fallback
+                if (error instanceof NoahScanError) {
+                    (error as any).rawText = text;
+                }
             }
+        }
+
+        if (lastError instanceof NoahScanError) {
+            throw lastError;
         }
 
         throw new NoahScanError(
@@ -251,7 +259,8 @@ export class NoahMRZScanner {
     public validateMRZ(mrz: string, docType?: NoahDocumentType): boolean {
         try {
             const document = NoahMRZScanner.normalizeDocument(mrz, docType);
-            return validateCandidate(document.mrz, LAYOUTS[document.docType]);
+            const validation = validateCandidate(document.mrz, LAYOUTS[document.docType]);
+            return validation.valid;
         } catch {
             return false;
         }
@@ -263,8 +272,9 @@ export class NoahMRZScanner {
             throw new NoahScanError('Could not detect a valid TD3, TD1, or TD2 MRZ');
         }
 
-        if (!validateCandidate(candidate.normalized, candidate.layout)) {
-            throw new NoahScanError('MRZ check-digit validation failed. Please try a clearer photo.');
+        const validation = validateCandidate(candidate.normalized, candidate.layout);
+        if (!validation.valid) {
+            throw new NoahScanError(`MRZ check-digit validation failed (${validation.error}). Please try a clearer photo.`);
         }
 
         return {
@@ -476,24 +486,26 @@ function scoreCandidate(mrz: string, layout: Layout): number {
     return score;
 }
 
-function validateCandidate(mrz: string, layout: Layout): boolean {
-    const required = validateRange(mrz, layout.docNumber)
-        && validateRange(mrz, layout.birth)
-        && validateRange(mrz, layout.expiry);
-
-    if (!required) {
-        return false;
+function validateCandidate(mrz: string, layout: Layout): { valid: boolean; error?: string } {
+    if (!validateRange(mrz, layout.docNumber)) {
+        return { valid: false, error: 'Passport Number checksum' };
+    }
+    if (!validateRange(mrz, layout.birth)) {
+        return { valid: false, error: 'Date of Birth checksum' };
+    }
+    if (!validateRange(mrz, layout.expiry)) {
+        return { valid: false, error: 'Expiry Date checksum' };
     }
 
     if (layout.optional && !validateRange(mrz, layout.optional)) {
-        return false;
+        return { valid: false, error: 'Optional data checksum' };
     }
 
     if (layout.composite && !validateComposite(mrz, layout.composite)) {
-        return false;
+        return { valid: false, error: 'Composite checksum' };
     }
 
-    return true;
+    return { valid: true };
 }
 
 function validateRange(mrz: string, range: CheckRange): boolean {

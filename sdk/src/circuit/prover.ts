@@ -2,8 +2,8 @@
 import { Noir } from '@noir-lang/noir_js';
 import { UltraHonkBackend, Barretenberg } from '@aztec/bb.js';
 import { CompiledCircuit } from '@noir-lang/types';
-import { getZKHonkCallData, init as initGaraga } from 'garaga';
 import { flattenFieldsAsArray } from '../utils/conversions.js';
+import { getZKHonkCallData, init as initGaraga } from 'garaga';
 import type { NoahDocumentType } from '../data/mrz.js';
 
 export interface NoahProverInputs {
@@ -31,15 +31,22 @@ export interface NoahVerificationPublicInputs {
 }
 
 export class NoahProver {
+    private static readonly RAW_VK_SIZE = 1760;
+    private static readonly COMPACT_VK_SIZE = 1888;
+    private static readonly WIDE_VK_SIZE = 3680;
+    private static readonly GARAGA_HEADER_SIZE = 96;
+    private static readonly WIDE_WORD_SIZE = 32;
+    private static readonly COORD_LOW_OFFSET = 15;
+    private static readonly COORD_HIGH_OFFSET = 17;
+    private static readonly LEGACY_POINT_SECTION_SIZE = 1728;
+
     private noir: Noir;
     private backend: UltraHonkBackend;
     private api: Barretenberg;
-    private bytecode: string;
     private vk: Uint8Array | null = null;
     private extractedLogN: number = 17; // Default to 17 if not found
 
     private constructor(circuitArtifact: CompiledCircuit, backend: UltraHonkBackend, api: Barretenberg, vk?: Uint8Array) {
-        this.bytecode = circuitArtifact.bytecode;
         this.backend = backend;
         this.api = api;
         this.noir = new Noir(circuitArtifact);
@@ -131,23 +138,25 @@ export class NoahProver {
         // Dynamically adapt VK for Garaga using the correct public input count
         const garagaVk = this.adaptVkForGaraga(this.vk, proof.publicInputs.length);
 
+        // Re-include the public inputs in the Garaga proof builder. 
+        // This is required to match the VK's expected input count, 
+        // while our u256 formatting in the registry handles the contract-level alignment.
         const appPublicInputs = flattenFieldsAsArray(proof.publicInputs);
-
-        // Pass only the application public inputs.
-        // Garaga will extract the 16 pairing inputs from the proof bytes itself.
         const garagaInputs = appPublicInputs;
-
+        
         const callData = getZKHonkCallData(
             proof.proof,
             garagaInputs,
             garagaVk
         );
 
-        // Starknet.js automatically adds a length prefix when passing an array to a function expecting a Span.
-        // If Garaga returns [len, ...data], we need to strip 'len' to avoid [len, len, ...data].
-        if (callData.length > 0 && callData[0] === BigInt(callData.length - 1)) {
-            callData.shift();
-        }
+        console.log('[Noah] Garaga Raw CallData Length:', callData.length);
+        console.log('[Noah] Garaga Raw First 2:', callData.slice(0, 2).map(x => x.toString()));
+
+        // We've removed the manual shift(). 
+        // Starknet.js automatically adds a length prefix when passing an array 
+        // to a function expecting a Span. We rely on the library to handle 
+        // serialization consistently with the ABI.
 
         // We convert to string[] for Starknet.js
         return callData.map(x => x.toString());
@@ -176,29 +185,74 @@ export class NoahProver {
     }
 
     /**
-     * Sanitizes the VK by truncating it if it's too large (e.g. 3680 bytes from bb.js).
-     * Returns the 1760-byte VK and the extracted log_n.
+     * Normalizes the VK into the 1888-byte layout expected by Garaga and extracts log_n.
      */
     private static sanitizeVk(vk: Uint8Array): { vk: Uint8Array, logN: number } {
-        let targetVk = vk;
-        let logN = 17; // Default to 17 (standard for UltraHonk)
+        const logN = vk[31] ?? 17;
 
-        // Handle the larger VK format from newer bb.js (3680 bytes)
-        if (vk.length >= 3680) {
-            logN = vk[31];
-            targetVk = vk;
-        } else if (vk.length >= 1760) {
-            logN = vk[31];
+        if (vk.length === NoahProver.COMPACT_VK_SIZE) {
+            return { vk: vk.slice(), logN };
         }
 
-        return { vk: targetVk, logN };
+        if (vk.length === NoahProver.WIDE_VK_SIZE) {
+            return { vk: NoahProver.compactWideVk(vk), logN };
+        }
+
+        if (vk.length === NoahProver.RAW_VK_SIZE) {
+            return { vk: vk.slice(), logN };
+        }
+
+        return { vk: vk.slice(), logN };
     }
 
     /**
-     * Adapts the 1760-byte sanitized VK to the 1888-byte format expected by Garaga.
-     * Constructs the specific header with size, offset, and num_pub.
+     * Compacts the 3680-byte bb.js VK into the 1888-byte Garaga layout.
+     * The widened format stores each 32-byte coordinate chunk in a padded 32-byte word.
+     * We strip the padding and reassemble the 32-byte BN254 coordinates.
+     */
+    private static compactWideVk(vk: Uint8Array): Uint8Array {
+        const compactVk = new Uint8Array(NoahProver.COMPACT_VK_SIZE);
+        compactVk.set(vk.slice(0, NoahProver.GARAGA_HEADER_SIZE), 0);
+
+        let targetOffset = NoahProver.GARAGA_HEADER_SIZE;
+        for (let sourceOffset = NoahProver.GARAGA_HEADER_SIZE; sourceOffset < vk.length; sourceOffset += NoahProver.WIDE_WORD_SIZE * 4) {
+            const xLow = vk.slice(sourceOffset, sourceOffset + NoahProver.WIDE_WORD_SIZE);
+            const xHigh = vk.slice(sourceOffset + NoahProver.WIDE_WORD_SIZE, sourceOffset + (NoahProver.WIDE_WORD_SIZE * 2));
+            const yLow = vk.slice(sourceOffset + (NoahProver.WIDE_WORD_SIZE * 2), sourceOffset + (NoahProver.WIDE_WORD_SIZE * 3));
+            const yHigh = vk.slice(sourceOffset + (NoahProver.WIDE_WORD_SIZE * 3), sourceOffset + (NoahProver.WIDE_WORD_SIZE * 4));
+
+            const xHighBytes = xHigh.slice(NoahProver.COORD_HIGH_OFFSET);
+            const xLowBytes = xLow.slice(NoahProver.COORD_LOW_OFFSET);
+            const yHighBytes = yHigh.slice(NoahProver.COORD_HIGH_OFFSET);
+            const yLowBytes = yLow.slice(NoahProver.COORD_LOW_OFFSET);
+
+            compactVk.set(xHighBytes, targetOffset);
+            targetOffset += xHighBytes.length;
+            compactVk.set(xLowBytes, targetOffset);
+            targetOffset += xLowBytes.length;
+
+            compactVk.set(yHighBytes, targetOffset);
+            targetOffset += yHighBytes.length;
+            compactVk.set(yLowBytes, targetOffset);
+            targetOffset += yLowBytes.length;
+        }
+
+        return compactVk;
+    }
+
+    /**
+     * Adapts legacy VK layouts to the 1888-byte format expected by Garaga.
      */
     private adaptVkForGaraga(vk: Uint8Array, numPublicInputs: number): Uint8Array {
+        if (vk.length === NoahProver.COMPACT_VK_SIZE) {
+            const updatedVk = vk.slice();
+            const dataView = new DataView(updatedVk.buffer, updatedVk.byteOffset, updatedVk.byteLength);
+            dataView.setUint32(28, this.extractedLogN, false); // log_circuit_size
+            dataView.setUint32(60, numPublicInputs + 16, false); // public_inputs_size
+            dataView.setUint32(92, 1, false); // public_inputs_offset
+            return updatedVk;
+        }
+
         const newVk = new Uint8Array(1888);
         const dataView = new DataView(newVk.buffer);
 
@@ -211,33 +265,8 @@ export class NoahProver {
         dataView.setUint32(60, vkPubInputsCount, false); // BE
         dataView.setUint32(92, 1, false); // BE
 
-        // Find the points in the SDK's VK.
-        let sdkPointsOffset = 96; // Standard Noir Honk VK header size
-        const signature = new Uint8Array([0x13, 0xaf, 0x7f, 0x26]); // QM.X start
-
-        const at96 = vk.slice(96, 96 + 4);
-
-        if (at96[0] === signature[0] && at96[1] === signature[1] && at96[2] === signature[2] && at96[3] === signature[3]) {
-            sdkPointsOffset = 96;
-        } else {
-            // Search more broadly for the signature
-            for (let i = 0; i < vk.length - signature.length; i++) {
-                let match = true;
-                for (let j = 0; j < signature.length; j++) {
-                    if (vk[i + j] !== signature[j]) {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match) {
-                    sdkPointsOffset = i;
-                    break;
-                }
-            }
-        }
-
-        // Copy 1728 bytes of points (27 G1 points)
-        newVk.set(vk.slice(sdkPointsOffset, sdkPointsOffset + 1728), 96);
+        // Copy 1728 bytes of points (27 G1 points) from the legacy 1760-byte VK.
+        newVk.set(vk.slice(NoahProver.RAW_VK_SIZE - NoahProver.LEGACY_POINT_SECTION_SIZE), 96);
 
         // Append 28th point (LagrangeLast) which is missing in bb.js 1760-byte VK
         const lagrangeLastX = "01c40845a5f094353fad820b933fe0f25a180b90b64f3785a501ac790f9a62e5";

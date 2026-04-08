@@ -2,13 +2,8 @@ import { Account, RpcProvider, AccountInterface } from 'starknet';
 import { NoahRegistry } from './registry.js';
 import registryAbi from '../../assets/abis/CredentialRegistry.json' with { type: 'json' };
 import { NETWORKS, NoahNetwork, DEFAULT_NETWORK } from '../constants.js';
-import pkg from 'dotenv';
-const { config: loadEnv } = pkg;
-
-// Load environment variables for Node.js environments
-if (typeof process !== 'undefined' && process.env) {
-    loadEnv({ quiet: true });
-}
+// Noah SDK uses standard process.env checks for cross-platform compatibility.
+// If using in a Node.js backend relayer, call dotenv.config() in your application's entry point.
 
 export interface NoahConfig {
     network?: NoahNetwork;

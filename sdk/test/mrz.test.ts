@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
+import { Barretenberg } from '@aztec/bb.js';
 import { NoahDocumentType, NoahMRZScanner } from '../src/data/mrz';
 import { NoahNFCParser } from '../src/data/nfc';
+import { derivePublicInputs, prepareProverInputs } from '../src/circuit/inputs';
 
 const TD3_SAMPLE =
     'P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<L898902C36UTO7408122F1204159ZE184226B<<<<<10';
@@ -8,6 +10,10 @@ const TD1_SAMPLE =
     'I<UTOD231458907<<<<<<<<<<<<<<<6408125F1204159UTO<<<<<<<<<<<2ERIKSSON<<ANNA<MARIA<<<<<<<<<<';
 const TD2_SAMPLE =
     'I<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<D231458907UTO6408125F1204159<<<<<<<2';
+
+afterAll(async () => {
+    await Barretenberg.destroySingleton();
+});
 
 describe('NoahMRZScanner', () => {
     it('normalizes a TD3 document and pads it for the circuit', () => {
@@ -74,5 +80,42 @@ describe('NoahNFCParser', () => {
         expect(inputs.is_left).toHaveLength(20);
         expect(inputs.birth_year).toBe(BigInt(1964));
         expect(inputs.expiry_date).toBe(BigInt(120415));
+    });
+});
+
+describe('prepareProverInputs', () => {
+    it('derives the public signals expected by the current TD3 circuit', async () => {
+        const document = NoahMRZScanner.normalizeDocument(TD3_SAMPLE, NoahDocumentType.TD3);
+        const options = {
+            merklePath: Array.from({ length: 20 }, () => '0'),
+            isLeft: Array.from({ length: 20 }, () => false),
+            userSecret: '0'
+        };
+
+        const publicInputs = await derivePublicInputs(document, options);
+        const inputs = await prepareProverInputs(document, options);
+
+        expect(publicInputs).toMatchObject({
+            passportRoot: '0x0bed2e5e2b712311da2c01058d69555d3ac3952801164cbb934d67bf78440d7b',
+            nullifier: '0x014e80702291cd67ce006ba5d0b87e684d5c60672b16141931467916b39ac37b',
+            nameHash: '0x0e1cdb47b5f1a2bc364c96660017ef77b88daabb0167b8b0f9341b96cf3cf169',
+            docNumHash: '0x2eacd6dd87aed021537654eca1c04c8d1f36f9b7578fb85a03c426a2159ca2e8',
+            birthYear: BigInt(1974),
+            expiryDate: BigInt(120415)
+        });
+
+        expect(inputs).toMatchObject({
+            doc_type: NoahDocumentType.TD3,
+            user_secret: '0',
+            passport_root: publicInputs.passportRoot,
+            nullifier: publicInputs.nullifier,
+            name_hash: publicInputs.nameHash,
+            doc_num_hash: publicInputs.docNumHash,
+            birth_year: BigInt(1974),
+            expiry_date: BigInt(120415)
+        });
+        expect(inputs.mrz).toHaveLength(90);
+        expect(inputs.merkle_path).toHaveLength(20);
+        expect(inputs.is_left).toHaveLength(20);
     });
 });
