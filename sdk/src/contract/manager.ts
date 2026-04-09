@@ -37,10 +37,10 @@ export class NoahContractManager {
         const providerUrl =
             config.providerUrl || getEnvVar(getRpcEnvKey(network)) || networkConfig.providerUrl;
         const registryAddress =
-            config.registryAddress || getEnvVar('REGISTRY_ADDRESS') || networkConfig.registryAddress;
+            config.registryAddress || getEnvVar('NOAH_REGISTRY_ADDRESS') || networkConfig.registryAddress;
         const chainId = config.chainId || networkConfig.chainId;
         const verifierAddress =
-            config.verifierAddress || getEnvVar('VERIFIER_ADDRESS') || networkConfig.verifierAddress;
+            config.verifierAddress || getEnvVar('NOAH_VERIFIER_ADDRESS') || networkConfig.verifierAddress;
 
         if (!providerUrl) {
             throw new Error(`Provider URL is required for network ${network}`);
@@ -69,8 +69,8 @@ export class NoahContractManager {
 
         // 2. Initialize admin account for sponsored gas (KYC)
         // Check config first, then fall back to environment variables (for backend/relay usage)
-        const adminAddr = config.adminAddress || getEnvVar('ADMIN_CONTRACT_ADDRESS');
-        const adminKey = config.adminPrivateKey || getEnvVar('ADMIN_PRIVATE_KEY');
+        const adminAddr = config.adminAddress || getEnvVar('NOAH_ISSUER_MANAGER_ADDRESS');
+        const adminKey = config.adminPrivateKey || getEnvVar('NOAH_ISSUER_MANAGER_PRIVATE_KEY');
 
         if (adminAddr && adminKey) {
             this.adminAccount = this.createAccount(adminAddr, adminKey);
@@ -155,12 +155,12 @@ function normalizeEnvValue(value: unknown): string | undefined {
 
 function getRpcEnvKey(network: NoahNetwork): string {
     if (network === 'mainnet') {
-        return 'MAINNET_RPC';
+        return 'NOAH_MAINNET_RPC';
     }
 
     if (network === 'devnet') {
-        return 'DEVNET_RPC';
+        return 'NOAH_DEVNET_RPC';
     }
 
-    return 'SEPOLIA_RPC';
+    return 'NOAH_SEPOLIA_RPC';
 }

@@ -18,11 +18,11 @@ export default defineConfig({
   define: {
     global: "globalThis",
     "process.env": {
-      ADMIN_PRIVATE_KEY: JSON.stringify(process.env.ADMIN_PRIVATE_KEY),
-      ADMIN_CONTRACT_ADDRESS: JSON.stringify(process.env.ADMIN_CONTRACT_ADDRESS),
-      REGISTRY_ADDRESS: JSON.stringify(process.env.REGISTRY_ADDRESS),
-      VERIFIER_ADDRESS: JSON.stringify(process.env.VERIFIER_ADDRESS),
-      SEPOLIA_RPC: JSON.stringify(process.env.SEPOLIA_RPC),
+      NOAH_ISSUER_MANAGER_PRIVATE_KEY: JSON.stringify(process.env.NOAH_ISSUER_MANAGER_PRIVATE_KEY),
+      NOAH_ISSUER_MANAGER_ADDRESS: JSON.stringify(process.env.NOAH_ISSUER_MANAGER_ADDRESS),
+      NOAH_REGISTRY_ADDRESS: JSON.stringify(process.env.NOAH_REGISTRY_ADDRESS),
+      NOAH_VERIFIER_ADDRESS: JSON.stringify(process.env.NOAH_VERIFIER_ADDRESS),
+      NOAH_SEPOLIA_RPC: JSON.stringify(process.env.NOAH_SEPOLIA_RPC),
     },
   },
   plugins: [

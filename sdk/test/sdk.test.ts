@@ -43,11 +43,11 @@ describe('Noah SDK Initialization', () => {
     });
 
     it('accepts quoted env vars for sponsored signer config', () => {
-        const previousAdminAddress = process.env.ADMIN_CONTRACT_ADDRESS;
-        const previousAdminKey = process.env.ADMIN_PRIVATE_KEY;
+        const previousAdminAddress = process.env.NOAH_ISSUER_MANAGER_ADDRESS;
+        const previousAdminKey = process.env.NOAH_ISSUER_MANAGER_PRIVATE_KEY;
 
-        process.env.ADMIN_CONTRACT_ADDRESS = '"0x123"';
-        process.env.ADMIN_PRIVATE_KEY = '"0x456"';
+        process.env.NOAH_ISSUER_MANAGER_ADDRESS = '"0x123"';
+        process.env.NOAH_ISSUER_MANAGER_PRIVATE_KEY = '"0x456"';
 
         try {
             const manager = new NoahContractManager({
@@ -57,8 +57,8 @@ describe('Noah SDK Initialization', () => {
 
             expect(manager.adminAccount).toBeDefined();
         } finally {
-            process.env.ADMIN_CONTRACT_ADDRESS = previousAdminAddress;
-            process.env.ADMIN_PRIVATE_KEY = previousAdminKey;
+            process.env.NOAH_ISSUER_MANAGER_ADDRESS = previousAdminAddress;
+            process.env.NOAH_ISSUER_MANAGER_PRIVATE_KEY = previousAdminKey;
         }
     });
 
