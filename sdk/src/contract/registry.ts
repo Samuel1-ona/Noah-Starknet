@@ -1,5 +1,7 @@
 import { Contract, RpcProvider, Abi, AccountInterface } from 'starknet';
 import { NoahVerificationPublicInputs } from '../circuit/prover.js';
+import { parseStarknetError } from '../utils/starknet.js';
+import { NoahContractRevertError } from '../utils/errors.js';
 
 export class NoahRegistry {
     private contract: Contract;
@@ -78,8 +80,9 @@ export class NoahRegistry {
             // @ts-ignore
             return await signer.execute(call);
         } catch (error: any) {
-            console.error('[Noah] Verify Credential Failed:', error?.message || error);
-            throw new Error(this.describeWriteError(error, Boolean(this.adminAccount)));
+            const friendlyMessage = parseStarknetError(error);
+            console.error('[Noah] Verify Credential Failed:', friendlyMessage, error);
+            throw new NoahContractRevertError(friendlyMessage, error);
         }
     }
 
@@ -133,8 +136,14 @@ export class NoahRegistry {
         if (!this.adminAccount) {
             throw new Error(`Admin account is required to call ${method}`);
         }
-        const call = this.contract.populate(method, args);
-        return await this.adminAccount.execute(call);
+        try {
+            const call = this.contract.populate(method, args);
+            return await this.adminAccount.execute(call);
+        } catch (error: any) {
+            const friendlyMessage = parseStarknetError(error);
+            console.error(`[Noah] Admin Call Failed (${method}):`, friendlyMessage, error);
+            throw new NoahContractRevertError(friendlyMessage, error);
+        }
     }
 
     /**
@@ -166,19 +175,6 @@ export class NoahRegistry {
         return Boolean(result);
     }
 
-    private describeWriteError(error: any, usingAdminSigner: boolean): string {
-        const rawMessage = extractErrorMessage(error);
-
-        if (rawMessage.includes('Caller is missing role')) {
-            if (usingAdminSigner) {
-                return 'The configured admin signer is missing ISSUER_MANAGER_ROLE on the CredentialRegistry contract.';
-            }
-
-            return 'The connected wallet is signing verify_credential, but this registry only allows accounts with ISSUER_MANAGER_ROLE to submit verification transactions. Grant ISSUER_MANAGER_ROLE to this wallet, or submit through an admin/relayer signer instead.';
-        }
-
-        return rawMessage;
-    }
 }
 
 function toU32(value: string | bigint | number): number {
@@ -200,18 +196,3 @@ function toU256(value: string | bigint | number): { low: string, high: string } 
     };
 }
 
-function extractErrorMessage(error: any): string {
-    if (error instanceof Error && error.message) {
-        return error.message;
-    }
-
-    if (typeof error === 'string') {
-        return error;
-    }
-
-    if (error && typeof error === 'object') {
-        return error.message || error.details || error.code || JSON.stringify(error, Object.getOwnPropertyNames(error));
-    }
-
-    return 'Unknown contract error';
-}

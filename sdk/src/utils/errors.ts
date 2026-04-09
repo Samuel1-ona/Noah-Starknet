@@ -25,3 +25,10 @@ export class NoahContractError extends NoahError {
         this.name = 'NoahContractError';
     }
 }
+
+export class NoahContractRevertError extends NoahContractError {
+    constructor(message: string, public readonly rawError: any) {
+        super(message);
+        this.name = 'NoahContractRevertError';
+    }
+}
