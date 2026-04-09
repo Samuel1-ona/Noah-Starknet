@@ -12,3 +12,4 @@ export * from './orchestrator/jobs.js';
 export * from './storage/base.js';
 export * from './storage/browser.js';
 export * from './crypto/blinded.js';
+export * from './constants.js';

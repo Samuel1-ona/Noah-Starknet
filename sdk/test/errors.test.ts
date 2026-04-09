@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseStarknetError } from '../src/utils/starknet';
-import { shortString, hash } from 'starknet';
+import { shortString } from 'starknet';
+import { NOAH_ISSUER_MANAGER_ROLE } from '../src/constants';
 
 describe('Starknet Error Parsing', () => {
     it('decodes hex-encoded Cairo short strings', () => {
@@ -10,8 +11,7 @@ describe('Starknet Error Parsing', () => {
     });
 
     it('decodes role-missing errors with known role hashes', () => {
-        const roleHash = hash.getSelectorFromName('ISSUER_MANAGER_ROLE');
-        const errorMessage = `An error occurred: Caller is missing role ${roleHash}`;
+        const errorMessage = `An error occurred: Caller is missing role ${NOAH_ISSUER_MANAGER_ROLE}`;
         const parsed = parseStarknetError(errorMessage);
         expect(parsed).toContain('ISSUER_MANAGER_ROLE');
     });

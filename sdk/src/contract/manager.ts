@@ -16,7 +16,10 @@ export interface NoahConfig {
     account?: AccountInterface;
     accountAddress?: string;
     privateKey?: string;
-    // Admin credentials for sponsored gas (KYC)
+    // Optional user signer used by integrators for non-privileged flows.
+    issuerManagerAddress?: string;
+    issuerManagerPrivateKey?: string;
+    // Deprecated aliases kept for compatibility with older integrations.
     adminAddress?: string;
     adminPrivateKey?: string;
 }
@@ -24,7 +27,7 @@ export interface NoahConfig {
 export class NoahContractManager {
     public provider: RpcProvider;
     public account?: AccountInterface;
-    public adminAccount?: AccountInterface;
+    public issuerManagerAccount?: AccountInterface;
     public registryAddress: string;
     public verifierAddress?: string;
     public registry: NoahRegistry;
@@ -67,14 +70,19 @@ export class NoahContractManager {
             this.account = this.createAccount(config.accountAddress, config.privateKey);
         }
 
-        // 2. Initialize admin account for sponsored gas (KYC)
-        // Check config first, then fall back to environment variables (for backend/relay usage)
-        const adminAddr = config.adminAddress || getEnvVar('NOAH_ISSUER_MANAGER_ADDRESS');
-        const adminKey = config.adminPrivateKey || getEnvVar('NOAH_ISSUER_MANAGER_PRIVATE_KEY');
+        // 2. Initialize the privileged issuer-manager signer for role-gated writes.
+        const issuerManagerAddr =
+            config.issuerManagerAddress ||
+            config.adminAddress ||
+            getEnvVar('NOAH_ISSUER_MANAGER_ADDRESS');
+        const issuerManagerKey =
+            config.issuerManagerPrivateKey ||
+            config.adminPrivateKey ||
+            getEnvVar('NOAH_ISSUER_MANAGER_PRIVATE_KEY');
 
-        if (adminAddr && adminKey) {
-            this.adminAccount = this.createAccount(adminAddr, adminKey);
-            console.log(`[Noah] Admin Account (Sponsored) initialized: ${adminAddr}`);
+        if (issuerManagerAddr && issuerManagerKey) {
+            this.issuerManagerAccount = this.createAccount(issuerManagerAddr, issuerManagerKey);
+            console.log(`[Noah] Issuer manager signer initialized: ${issuerManagerAddr}`);
         }
 
         const abi = (registryAbi as any).abi || (registryAbi as any);
@@ -84,7 +92,7 @@ export class NoahContractManager {
             abi,
             this.provider,
             this.account as any,
-            this.adminAccount as any,
+            this.issuerManagerAccount as any,
             this.verifierAddress
         );
     }
@@ -109,6 +117,10 @@ export class NoahContractManager {
         };
 
         return account;
+    }
+
+    get adminAccount(): AccountInterface | undefined {
+        return this.issuerManagerAccount;
     }
 }
 

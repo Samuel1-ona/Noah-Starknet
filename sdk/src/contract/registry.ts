@@ -7,7 +7,7 @@ export class NoahRegistry {
     private contract: Contract;
     private readContract: Contract;
     private account?: AccountInterface;
-    private adminAccount?: AccountInterface;
+    private issuerManagerAccount?: AccountInterface;
     private configuredVerifierAddress?: string;
 
     constructor(
@@ -15,7 +15,7 @@ export class NoahRegistry {
         abi: Abi,
         provider: RpcProvider,
         account?: AccountInterface,
-        adminAccount?: AccountInterface,
+        issuerManagerAccount?: AccountInterface,
         configuredVerifierAddress?: string
     ) {
         // Ensure abi is a clean array and use the object-based constructor for v9
@@ -24,7 +24,7 @@ export class NoahRegistry {
         this.contract = new Contract({
             abi: cleanAbi,
             address,
-            providerOrAccount: adminAccount || account || provider
+            providerOrAccount: issuerManagerAccount || provider
         });
 
         // Create a separate contract instance for read-only calls using the provider directly.
@@ -35,31 +35,28 @@ export class NoahRegistry {
         });
 
         this.account = account;
-        this.adminAccount = adminAccount;
+        this.issuerManagerAccount = issuerManagerAccount;
         this.configuredVerifierAddress = configuredVerifierAddress;
     }
 
     /**
      * Verifies a credential on-chain.
-     * Uses the adminAccount (sponsored) if available.
+     * This write is role-gated on-chain and must be signed by an issuer manager.
      * @param proof The Garaga proof calldata (Span<felt252>)
      * @param publicInputs The six public outputs emitted by the Noir circuit
-     * @param targetUser The address to verify (usually this.account.address)
+     * @param targetUser The address to verify
      */
     async verifyCredential(
         proof: string[],
         publicInputs: NoahVerificationPublicInputs,
         targetUser?: string
     ) {
-        // If we have an admin account, it will sign and pay for the gas.
-        // If not, we fall back to the user's account.
-        const signer = this.adminAccount || this.account;
-        
-        if (!signer) {
-            throw new Error('An account (User or Admin) is required for write operations');
+        if (!this.issuerManagerAccount) {
+            throw new Error(
+                'verify_credential requires an issuer manager signer. Configure issuerManagerAddress/issuerManagerPrivateKey or NOAH_ISSUER_MANAGER_ADDRESS/NOAH_ISSUER_MANAGER_PRIVATE_KEY.'
+            );
         }
 
-        // Use account address from config as target if not specified
         const userToVerify = targetUser || (this.account ? this.account.address : undefined);
         if (!userToVerify) {
             throw new Error('Target user address is required for verification');
@@ -78,7 +75,7 @@ export class NoahRegistry {
             ]);
 
             // @ts-ignore
-            return await signer.execute(call);
+            return await this.issuerManagerAccount.execute(call);
         } catch (error: any) {
             const friendlyMessage = parseStarknetError(error);
             console.error('[Noah] Verify Credential Failed:', friendlyMessage, error);
@@ -90,30 +87,30 @@ export class NoahRegistry {
      * Administrative: Role Management
      */
     async grantIssuerManager(account: string) {
-        return this.executeAdminCall("grant_issuer_manager", [account]);
+        return this.executePrivilegedCall("grant_issuer_manager", [account]);
     }
 
     async revokeIssuerManager(account: string) {
-        return this.executeAdminCall("revoke_issuer_manager", [account]);
+        return this.executePrivilegedCall("revoke_issuer_manager", [account]);
     }
 
     async grantAdmin(account: string) {
-        return this.executeAdminCall("grant_admin", [account]);
+        return this.executePrivilegedCall("grant_admin", [account]);
     }
 
     async revokeAdmin(account: string) {
-        return this.executeAdminCall("revoke_admin", [account]);
+        return this.executePrivilegedCall("revoke_admin", [account]);
     }
 
     /**
      * Administrative: Protocol State
      */
     async pause() {
-        return this.executeAdminCall("pause", []);
+        return this.executePrivilegedCall("pause", []);
     }
 
     async unpause() {
-        return this.executeAdminCall("unpause", []);
+        return this.executePrivilegedCall("unpause", []);
     }
 
     async updateVerifier(newVerifier?: string) {
@@ -122,26 +119,26 @@ export class NoahRegistry {
             throw new Error('Verifier address is required to call update_verifier');
         }
 
-        return this.executeAdminCall("update_verifier", [verifierToUse]);
+        return this.executePrivilegedCall("update_verifier", [verifierToUse]);
     }
 
     async revokeCredential(user: string) {
-        return this.executeAdminCall("revoke_credential", [user]);
+        return this.executePrivilegedCall("revoke_credential", [user]);
     }
 
     /**
-     * Helper to execute administrative calls using the admin account
+     * Helper to execute privileged calls using the issuer-manager signer.
      */
-    private async executeAdminCall(method: string, args: any[]) {
-        if (!this.adminAccount) {
-            throw new Error(`Admin account is required to call ${method}`);
+    private async executePrivilegedCall(method: string, args: any[]) {
+        if (!this.issuerManagerAccount) {
+            throw new Error(`Issuer manager signer is required to call ${method}`);
         }
         try {
             const call = this.contract.populate(method, args);
-            return await this.adminAccount.execute(call);
+            return await this.issuerManagerAccount.execute(call);
         } catch (error: any) {
             const friendlyMessage = parseStarknetError(error);
-            console.error(`[Noah] Admin Call Failed (${method}):`, friendlyMessage, error);
+            console.error(`[Noah] Privileged call failed (${method}):`, friendlyMessage, error);
             throw new NoahContractRevertError(friendlyMessage, error);
         }
     }
@@ -195,4 +192,3 @@ function toU256(value: string | bigint | number): { low: string, high: string } 
         high: `0x${high.toString(16)}`
     };
 }
-

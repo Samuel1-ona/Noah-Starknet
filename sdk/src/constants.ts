@@ -1,3 +1,5 @@
+import { hash } from 'starknet';
+
 export type NoahNetwork = 'mainnet' | 'sepolia' | 'devnet';
 
 export interface NetworkConfig {
@@ -28,3 +30,6 @@ export const NETWORKS: Record<NoahNetwork, NetworkConfig> = {
 };
 
 export const DEFAULT_NETWORK: NoahNetwork = 'sepolia';
+
+export const NOAH_DEFAULT_ADMIN_ROLE = '0x0';
+export const NOAH_ISSUER_MANAGER_ROLE = hash.getSelectorFromName('ISSUER_MANAGER_ROLE');

@@ -1,4 +1,5 @@
-import { shortString, hash } from 'starknet';
+import { shortString } from 'starknet';
+import { NOAH_DEFAULT_ADMIN_ROLE, NOAH_ISSUER_MANAGER_ROLE } from '../constants.js';
 
 /**
  * Known contract error messages from Cairo contracts, mapped to user-friendly descriptions.
@@ -32,8 +33,8 @@ const ERROR_MAPPINGS: Record<string, string> = {
  * Common role selectors mapped to their names.
  */
 const ROLE_MAPPINGS: Record<string, string> = {
-    '0x0': 'DEFAULT_ADMIN_ROLE', // DEFAULT_ADMIN_ROLE is usually 0
-    [hash.getSelectorFromName('ISSUER_MANAGER_ROLE')]: 'ISSUER_MANAGER_ROLE',
+    [NOAH_DEFAULT_ADMIN_ROLE]: 'DEFAULT_ADMIN_ROLE',
+    [NOAH_ISSUER_MANAGER_ROLE]: 'ISSUER_MANAGER_ROLE',
 };
 
 /**

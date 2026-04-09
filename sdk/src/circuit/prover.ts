@@ -18,7 +18,7 @@ export interface NoahProverInputs {
     doc_num_hash: string | number | bigint;
     birth_year: string | number | bigint;
     expiry_date: string | number | bigint;
-    user_address?: string; // Optional target address for sponsored verification
+    user_address?: string; // Optional target address for issuer-manager verification
 }
 
 export interface NoahVerificationPublicInputs {

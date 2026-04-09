@@ -90,8 +90,8 @@ export class NoahProofOrchestrator extends EventEmitter {
             const calldata = await this.prover.getStarknetCalldata(proof);
             const publicInputs = NoahProver.extractVerificationPublicInputs(proof.publicInputs);
 
-            // If we are using an adminAccount (sponsored), we can verify for ANY user address.
-            // If we are a user-only setup, we verify for ourselves.
+            // The SDK submits verify_credential with the configured issuer-manager signer.
+            // The integrator still controls which user address is being verified.
             const targetUser = inputs.user_address || (this.contracts.account ? this.contracts.account.address : undefined);
 
             const tx = await this.contracts.registry.verifyCredential(
