@@ -1,97 +1,123 @@
-# Noah: Anonymous Passport Verification on Starknet
+# NOAH:Privacy-Preserving KYC for Starknet 🛡️⚓
 
-Welcome to **Noah**, a privacy-first identity layer built for the starknet ecosystem. 
+**NOAH** (Network for On-chain Authenticated Handshakes) is a state-of-the-art, zero-knowledge proof-based identity protocol for the Starknet ecosystem. It enables decentralized applications—from Gaming and DeFi to Consumer Apps—to verify user credentials  without ever touching or storing personal data.
 
-In a world where "proving who you are" usually means uploading a photo of your ID to a centralized server, Noah offers a different path. We allow users to verify their identity using their physical e-Passport **without ever revealing their personal data** to the blockchain or any third party.
-
-It's about proving *facts* about yourself (like "I am over 18" or "I am a unique human") without doxxing yourself.
+## The Noah Vision: "Verify Once, Use Everywhere"
+Noah eliminates the redundancy of KYC on-chain. By using Zero-Knowledge Proofs (ZKP), users bind their identity to their wallet address once. This verification is then instantly reusable across every integrated app on Starknet, while maintaining 100% user privacy.
 
 ---
 
-## � Why Noah?
-
-We built Noah to solve the tension between **compliance** and **privacy**. 
-
-Traditional KYC (Know Your Customer) is broken. It creates massive honeypots of sensitive user data that get hacked repeatedly. On-chain, the problem is worse: once you link your real-world identity to a wallet, your entire financial history is exposed.
-
-Noah uses **Zero-Knowledge Proofs (ZKPs)** to bridge the physical and digital worlds securely. Your passport stays in your hand. The blockchain only sees a mathematical proof that vouches for you.
-
 ## 🌟 Use Cases
-
 Here is what you can build with Noah:
 
 ### 1. Gaming & Web3 E-Sports
-Keep your leaderboards fair. Verify that each player is a unique human behind the keyboard, putting an end to multi-accounting and bots.
+Keep your leaderboards fair. Verify that each player is a unique human, putting an end to multi-accounting and bot farms without revealing the player's real-world identity.
 
 ### 2. Consumer Applications
 Age-gate your content or services effortlessly. Prove your user is over 18 without asking them to upload a photo of their ID card to your servers.
 
 ### 3. DeFi & RWA Platforms
-Onboard users securely. Meet strict KYC requirements while preserving your users' on-chain privacy.
+Onboard users securely. Meet strict compliance requirements while preserving your users' on-chain privacy.
 
 ---
 
-##  How It Works (The Tech Stack)
+## 🏗️ Technical Structure & Architecture
+The Noah Protocol is structured into three integrated layers that prioritize user privacy and on-chain security:
 
-The system is composed of three main parts working in harmony:
+### 1. Application Layer (Noah App & SDK)
+Developers integrate the **Noah SDK** into their dApps. The SDK provides a seamless UI that handles user interaction—from passport photo upload to proof generation—without requiring complex back-end configuration.
 
-1.  **The Frontend (`/app`)**: A friendly React + Vite web app. This is where the magic happens for the user. It scans the passport via NFC, generates the heavy ZK proof locally in the browser, and handles the wallet connection. **No data leaves this app.**
+### 2. Verification Layer (Client-Side OCR & ZK)
+All sensitive processing occurs locally on the user's device. The SDK uses **Tesseract.js** for browser-side OCR to extract document data (MRZ), which is then passed to a **Noir-based Prover**. The prover generates a Zero-Knowledge Proof (ZKP) that confirms identity attributes without exposing any Personally Identifiable Information (PII).
+
+### 3. On-chain Layer (Starknet)
+The ZK Proof is submitted to the **CredentialRegistry** on Starknet. The registry uses a **Garaga-optimized Verifier** to cryptographically validate the proof. Once verified, a unique identity nullifier is permanently bound to the user's wallet address.
+
+![Noah Professional Architecture](docs/images/architecture_ocr.png)
+
+```mermaid
+graph TD
+    classDef client fill:#6b21a8,stroke:#a855f7,stroke-width:2px,color:#fff;
+    classDef network fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef contract fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff;
+
+    subgraph AppLayer ["1. Application Layer (Noah App & SDK)"]
+        SDK["Noah SDK integration"] --> UI["Seamless UI Components"]
+    end
+
+    subgraph VerifLayer ["2. Verification Layer (Local OCR & ZK)"]
+        OCR["Local OCR (Tesseract.js)"] --> Prover["Noir Prover (Client-side)"]
+        Prover --> Proof["ZK Proof (No PII)"]
+    end
+
+    subgraph ChainLayer ["3. On-chain Layer (Starknet)"]
+        Registry["CredentialRegistry.cairo"] --> Verifier["Garaga Verifier"]
+        Verifier --> Nullifier["Identity Nullifier"]
+        Nullifier --- Wallet["User's Wallet Address"]
+    end
+
+    AppLayer --> VerifLayer
+    VerifLayer --> ChainLayer
     
-2.  **The SDK (`/sdk`)**: Our TypeScript library (`noah-sdk`) does the heavy lifting. It orchestrates the proof generation using `@aztec/bb.js`, manages the complex cryptography, and talks to the smart contracts. It's designed to be reusable so developers can integrate Noah into their own dApps.
-
-3.  **The Smart Contracts (`/contracts`)**: Written in Cairo, these live on Starknet.
-    -   **`CredentialRegistry`**: The brain. It verifies the proofs submitted by the app and keeps a record of which "nullifiers" have been used.
-    -   **`Verifier`**: The math. An optimized contract (generated by Garaga) that checks the validity of the SNARK proof.
+    class AppLayer client;
+    class VerifLayer network;
+    class ChainLayer contract;
+```
 
 ---
 
-## � Getting Started
+## 🛡️ Sybil Resistance & Privacy
+### Unique Identity Binding
+Noah ensures **Sybil Resistance** without a central database. By deriving a deterministic **Nullifier** (Hash of the Passport Number) inside the ZK circuit, the protocol ensures that each physical passport can only be used once across the entire network.
 
-Want to run this yourself? Here is how to get up and running locally.
+### Zero-Data Architecture
+- **No Backend**: No central server ever sees or processes the user's passport data.
+- **Client-Side Proving**: Proofs are generated via WASM in a secure environment on the user's device.
+- **Selective Disclosure**: Proves only the *requirement* (e.g., "User is over 18"), not the raw *data*.
+
+![Noah Sybil Resistance](docs/images/sybil_resistance.png)
+
+---
+
+## 🚀 Deployment Status
+
+### Starknet Sepolia
+- **CredentialRegistry**: [0x00107bca4ea84b0d540a44454a94ebf10e4b0181da34eb8b4c3eea134605730b](https://sepolia.starkscan.co/contract/0x00107bca4ea84b0d540a44454a94ebf10e4b0181da34eb8b4c3eea134605730b)
+
+### Starknet Mainnet
+- **CredentialRegistry**: `[PLACEHOLDER]`
+
+---
+
+## 🛠️ Getting Started
 
 ### Prerequisites
-You'll need **Node.js (v20+)** installed. If you plan to touch the contracts, you will also need **Rust** and **Scarb**.
+- **Node.js (v20+)**
+- **Scarb** & **Starknet Foundry** (for contract development)
+- **Noir** (for circuit development)
 
-### Installation
+### 1. Setup the SDK
+```bash
+cd sdk
+npm install
+npm run build
+```
 
-1.  **Clone the repo**:
-    ```bash
-    git clone https://github.com/Samuel1-ona/Noah-Starknet.git
-    cd Noah-starknet
-    ```
+### 2. Launch the App
+```bash
+cd ../app
+npm install
+npm run dev
+```
 
-2.  **Setup the SDK** (essential for the app to work):
-    ```bash
-    cd sdk
-    npm install
-    npm run build
-    ```
-
-3.  **Launch the App**:
-    ```bash
-    cd ../app
-    npm install
-    npm run dev
-    ```
-    Open `http://localhost:5173` and you are ready to go!
-
----
-
-## 📖 Using the App
-
-1.  **Connect**: Hook up your Argent X or Braavos wallet (we are on **Starknet Sepolia**).
-2.  **Scan**: Hold your passport against your phone (or input MRZ data if testing). The app reads the chip data.
-3.  **Prove**: Watch the progress bars as the app generates a ZK proof right in your browser.
-4.  **Verify**: Sign the transaction. Once it lands on-chain, your wallet address is officially "Verified" without anyone knowing who you are!
+### 3. Test Contracts
+```bash
+cd ../contracts
+snforge test
+```
 
 ---
 
-## 🌍 Deployment
-
-We are live on **Starknet Sepolia**.
-
--   **Registry Contract**: `0x00107bca4ea84b0d540a44454a94ebf10e4b0181da34eb8b4c3eea134605730b`
-
----
-
-Built with ❤️ using **Starknet**, **Noir**, and **Garaga**.
+**Repository**: [Samuel1-ona/Noah-Starknet](https://github.com/Samuel1-ona/Noah-Starknet)  
+**Status**: Devnet/Sepolia Active  
+**Powered by**: Starknet, Noir, Garaga.
